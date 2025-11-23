@@ -146,112 +146,109 @@ All colors MUST be HSL.
   }
 }
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+/* --- Animações Keyframes --- */
+
+/* Deslizar da direita */
+@keyframes slideInRight { 
+  from { transform: translateX(100%); opacity: 0; } 
+  to { transform: translateX(0); opacity: 1; } 
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+/* Deslizar de baixo para cima */
+@keyframes slideUp { 
+  from { transform: translateY(20px); opacity: 0; } 
+  to { transform: translateY(0); opacity: 1; } 
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Aparecer suavemente (Fade In) */
+@keyframes fadeIn { 
+  from { opacity: 0; } 
+  to { opacity: 1; } 
 }
 
-@keyframes scaleIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+/* Efeito de escala ao entrar */
+@keyframes scaleIn { 
+  from { transform: scale(0.95); opacity: 0; } 
+  to { transform: scale(1); opacity: 1; } 
 }
 
-@keyframes pulseRed {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+/* Pulso vermelho (para alertas/status ao vivo) */
+@keyframes pulse-red { 
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
+  50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+/* Flutuação suave (para ícones/logos) */
+@keyframes float { 
+  0%, 100% { transform: translateY(0px); } 
+  50% { transform: translateY(-10px); } 
 }
 
-@keyframes pulseSlow {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
+/* Pulso lento (para o background ambiente) */
+@keyframes pulse-slow { 
+  0%, 100% { opacity: 0.3; transform: scale(1); } 
+  50% { opacity: 0.6; transform: scale(1.05); } 
 }
 
-@keyframes glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8);
-  }
+/* Rotação lenta (para o radar) */
+@keyframes spin-slow { 
+  from { transform: rotate(0deg); } 
+  to { transform: rotate(360deg); } 
 }
 
-.animate-slideInRight {
-  animation: slideInRight 0.3s ease-out;
+/* Efeito "Pop" ao clicar (checkboxes/botões) */
+@keyframes pop { 
+  0% { transform: scale(1); } 
+  50% { transform: scale(1.2); } 
+  100% { transform: scale(1); } 
 }
 
-.animate-slideUp {
-  animation: slideUp 0.4s ease-out;
+/* Brilho pulsante */
+@keyframes glow { 
+  0%, 100% { box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.5); } 
+  50% { box-shadow: 0 0 30px 0px rgba(59, 130, 246, 0.8); } 
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
+/* --- Classes Utilitárias de Animação --- */
+
+.animate-slideInRight { animation: slideInRight 0.3s ease-out; }
+.animate-slideUp { animation: slideUp 0.4s ease-out forwards; }
+.animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+.animate-scaleIn { animation: scaleIn 0.3s ease-out; }
+.animate-pulse-red { animation: pulse-red 2s infinite; }
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 10s linear infinite; }
+.animate-pop { animation: pop 0.2s ease-in-out; }
+.animate-glow { animation: glow 3s infinite; }
+
+/* --- Scrollbar Personalizada (Estilo Fino) --- */
+
+::-webkit-scrollbar { 
+  width: 6px; 
 }
 
-.animate-scaleIn {
-  animation: scaleIn 0.2s ease-out;
+::-webkit-scrollbar-track { 
+  background: transparent; 
 }
 
-.animate-pulseRed {
-  animation: pulseRed 2s ease-in-out infinite;
+::-webkit-scrollbar-thumb { 
+  background: #cbd5e1; 
+  border-radius: 10px; 
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+/* Estilo da scrollbar no modo escuro */
+.dark ::-webkit-scrollbar-thumb { 
+  background: #475569; 
 }
 
-.animate-pulseSlow {
-  animation: pulseSlow 4s ease-in-out infinite;
+::-webkit-scrollbar-thumb:hover { 
+  background: #64748b; 
 }
 
-.animate-glow {
-  animation: glow 2s ease-in-out infinite;
+/* --- Acessibilidade (Foco visível) --- */
+
+*:focus-visible { 
+  outline: 2px solid #3b82f6; 
+  outline-offset: 2px; 
 }
