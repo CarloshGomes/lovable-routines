@@ -6,8 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { GlassCard } from '@/components/GlassCard';
-import { Moon, Sun, ChevronRight } from 'lucide-react';
-import logoImage from '@/assets/logo.png';
+import { Moon, Sun, Shield, User } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -51,22 +50,22 @@ const Login = () => {
 
       <div className="w-full max-w-4xl animate-fadeIn">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <div className="w-24 h-24 bg-primary rounded-[1.5rem] flex items-center justify-center shadow-lg">
-              <img src={logoImage} alt="Logo" className="w-16 h-16" />
-            </div>
-          </div>
-          <h1 className="text-5xl font-bold mb-2 text-foreground">Sistema de Controle</h1>
-          <p className="text-sm text-muted-foreground tracking-[0.3em] uppercase">Rastreamento V4.0</p>
+          <h1 className="text-5xl font-bold mb-4 text-gradient">Sistema de Rotinas</h1>
+          <p className="text-xl text-muted-foreground">Gestão Operacional Inteligente</p>
         </div>
 
         <GlassCard className="p-8">
-          <div className="space-y-4 mb-8">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <User className="w-6 h-6 text-primary" />
+            Selecione seu perfil
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {Object.entries(userProfiles).map(([username, profile]) => (
               <button
                 key={username}
                 onClick={() => handleLogin(username)}
-                className="w-full glass-card p-6 hover:scale-[1.02] transition-all text-left group flex items-center justify-between"
+                className="glass-card p-6 hover:scale-105 transition-transform text-left group"
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -75,24 +74,25 @@ const Login = () => {
                     {profile.avatar}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-foreground">
+                    <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
                       {profile.name}
                     </h3>
                     <p className="text-sm text-muted-foreground">{profile.role}</p>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </button>
             ))}
           </div>
 
           <div className="border-t border-border pt-6">
-            <button
+            <Button
+              variant="outline"
+              className="w-full"
               onClick={() => setShowPinModal(true)}
-              className="w-full text-center text-sm text-muted-foreground tracking-[0.2em] uppercase hover:text-foreground transition-colors"
             >
-              Administração
-            </button>
+              <Shield className="w-5 h-5" />
+              Acesso Supervisor
+            </Button>
           </div>
         </GlassCard>
       </div>
