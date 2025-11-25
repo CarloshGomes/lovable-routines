@@ -259,7 +259,7 @@ const Operator = () => {
               <div className="space-y-2 mb-4">
                 {block.tasks.map((task, index) => (
                   <label
-                    key={index}
+                    key={`${block.time}-${index}`}
                     className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors group"
                   >
                     <input
