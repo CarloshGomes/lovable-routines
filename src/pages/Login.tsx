@@ -7,7 +7,7 @@ import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { GlassCard } from '@/components/GlassCard';
 import { Moon, Sun, Shield, User, ChevronRight } from 'lucide-react';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logo.svg';
 
 const Login = () => {
   const navigate = useNavigate();
