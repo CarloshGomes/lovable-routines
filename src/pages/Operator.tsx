@@ -49,29 +49,29 @@ const Operator = () => {
 
   const currentHour = simulationMode ? simulatedTime : new Date().getHours();
 
-  const handleTaskToggle = (time: number, taskIndex: number) => {
-    const existing = userTracking[time] || { tasks: [], report: '', reportSent: false, timestamp: '' };
+  const handleTaskToggle = (blockId: string, taskIndex: number) => {
+    const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
     const tasks = existing.tasks.includes(taskIndex)
       ? existing.tasks.filter((t) => t !== taskIndex)
       : [...existing.tasks, taskIndex];
     
-    updateTracking(currentUser, time, { ...existing, tasks });
+    updateTracking(currentUser, blockId, { ...existing, tasks });
     addToast(tasks.includes(taskIndex) ? 'Tarefa concluída!' : 'Tarefa reaberta', 'success');
   };
 
-  const handleReportChange = (time: number, report: string) => {
-    const existing = userTracking[time] || { tasks: [], report: '', reportSent: false, timestamp: '' };
-    updateTracking(currentUser, time, { ...existing, report });
+  const handleReportChange = (blockId: string, report: string) => {
+    const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
+    updateTracking(currentUser, blockId, { ...existing, report });
   };
 
-  const handleReportSend = (time: number) => {
-    const existing = userTracking[time] || { tasks: [], report: '', reportSent: false, timestamp: '' };
+  const handleReportSend = (blockId: string) => {
+    const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
     if (!existing.report.trim()) {
       addToast('Digite um relatório antes de enviar', 'warning');
       return;
     }
     const now = new Date();
-    updateTracking(currentUser, time, { 
+    updateTracking(currentUser, blockId, { 
       ...existing, 
       reportSent: true, 
       timestamp: `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
@@ -80,7 +80,7 @@ const Operator = () => {
   };
 
   const filteredSchedule = userSchedule.filter((block) => {
-    const tracking = userTracking[block.time];
+    const tracking = userTracking[block.id];
     if (filter === 'completed') {
       return tracking && tracking.tasks.length === block.tasks.length;
     }
@@ -94,9 +94,9 @@ const Operator = () => {
   const completedTasks = Object.values(userTracking).reduce((sum, t) => sum + t.tasks.length, 0);
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  const getBlockStatus = (time: number) => {
-    const tracking = userTracking[time];
-    const block = userSchedule.find((b) => b.time === time);
+  const getBlockStatus = (blockId: string, time: number) => {
+    const tracking = userTracking[blockId];
+    const block = userSchedule.find((b) => b.id === blockId);
     if (!block) return 'future';
     
     const isCompleted = tracking && tracking.tasks.length === block.tasks.length;
@@ -198,8 +198,8 @@ const Operator = () => {
       {/* Schedule Blocks */}
       <div className="container mx-auto px-4 space-y-4">
         {filteredSchedule.map((block) => {
-          const status = getBlockStatus(block.time);
-          const tracking = userTracking[block.time] || { tasks: [], report: '', reportSent: false, timestamp: '' };
+          const status = getBlockStatus(block.id, block.time);
+          const tracking = userTracking[block.id] || { tasks: [], report: '', reportSent: false, timestamp: '' };
           const blockProgress = block.tasks.length > 0 ? (tracking.tasks.length / block.tasks.length) * 100 : 0;
 
           const statusStyles = {
@@ -211,7 +211,7 @@ const Operator = () => {
 
           return (
             <GlassCard
-              key={block.time}
+              key={block.id}
               className={`transition-all duration-300 ${statusStyles[status]} ${block.type === 'break' ? 'bg-warning/5' : ''}`}
             >
               <div className="flex items-start justify-between mb-4">
@@ -265,7 +265,7 @@ const Operator = () => {
                     <input
                       type="checkbox"
                       checked={tracking.tasks.includes(index)}
-                      onChange={() => handleTaskToggle(block.time, index)}
+                      onChange={() => handleTaskToggle(block.id, index)}
                       disabled={status === 'future'}
                       className="mt-1 w-5 h-5 rounded border-2 border-primary text-primary focus:ring-2 focus:ring-primary"
                     />
@@ -286,7 +286,7 @@ const Operator = () => {
                   <label className="block text-sm font-medium">Relatório / Retorno</label>
                   <textarea
                     value={tracking.report}
-                    onChange={(e) => handleReportChange(block.time, e.target.value)}
+                    onChange={(e) => handleReportChange(block.id, e.target.value)}
                     disabled={tracking.reportSent}
                     className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none resize-none"
                     rows={3}
@@ -298,7 +298,7 @@ const Operator = () => {
                       Relatório enviado às {tracking.timestamp}
                     </div>
                   ) : (
-                    <Button size="sm" onClick={() => handleReportSend(block.time)}>
+                    <Button size="sm" onClick={() => handleReportSend(block.id)}>
                       Enviar Relatório
                     </Button>
                   )}
