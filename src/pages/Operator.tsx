@@ -99,10 +99,22 @@ const Operator = () => {
     const block = userSchedule.find((b) => b.id === blockId);
     if (!block) return 'future';
     
-    const isCompleted = tracking && tracking.tasks.length === block.tasks.length;
+    const hasTasks = block.tasks.length > 0;
+    const isCompleted = hasTasks && tracking && tracking.tasks.length === block.tasks.length;
+    
+    // Blocos completos sempre aparecem como completos
     if (isCompleted) return 'completed';
+    
+    // Blocos sem tarefas (intervalos) se auto-completam quando o horário passa
+    if (!hasTasks && time < currentHour) return 'completed';
+    
+    // Bloco atual
     if (time === currentHour) return 'current';
-    if (time < currentHour) return 'late';
+    
+    // Blocos com tarefas incompletas no passado estão atrasados
+    if (hasTasks && time < currentHour) return 'late';
+    
+    // Blocos futuros
     return 'future';
   };
 
