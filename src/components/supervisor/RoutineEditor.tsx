@@ -14,6 +14,7 @@ const RoutineEditor = () => {
 
   const addBlock = () => {
     const newBlock = {
+      id: `${selectedUser}-${Date.now()}`,
       time: 7,
       label: '07:00 - 08:00',
       tasks: ['Nova tarefa'],
@@ -49,9 +50,11 @@ const RoutineEditor = () => {
   };
 
   const applyTemplate = (template: 'morning' | 'afternoon') => {
+    const timestamp = Date.now();
     const templates = {
       morning: [
         {
+          id: `${selectedUser}-${timestamp}-1`,
           time: 7,
           label: '07:00 - 08:00',
           tasks: ['Check-in de sistemas', 'Verificar e-mails prioritários'],
@@ -59,6 +62,7 @@ const RoutineEditor = () => {
           category: 'sistema' as const,
         },
         {
+          id: `${selectedUser}-${timestamp}-2`,
           time: 8,
           label: '08:00 - 09:00',
           tasks: ['Processar demandas pendentes', 'Atualizar dashboard'],
@@ -68,6 +72,7 @@ const RoutineEditor = () => {
       ],
       afternoon: [
         {
+          id: `${selectedUser}-${timestamp}-1`,
           time: 13,
           label: '13:00 - 14:00',
           tasks: ['Revisão de processos', 'Organizar documentação'],
@@ -119,7 +124,7 @@ const RoutineEditor = () => {
       {/* Schedule Blocks */}
       <div className="space-y-4">
         {currentSchedule.map((block, blockIndex) => (
-          <GlassCard key={blockIndex} className="animate-slideUp">
+          <GlassCard key={block.id} className="animate-slideUp">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <input

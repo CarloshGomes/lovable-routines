@@ -9,6 +9,7 @@ export interface UserProfile {
 }
 
 export interface ScheduleBlock {
+  id: string;
   time: number;
   label: string;
   tasks: string[];
@@ -38,7 +39,7 @@ interface AppContextType {
   isSupervisor: boolean;
   userProfiles: Record<string, UserProfile>;
   schedules: Record<string, ScheduleBlock[]>;
-  trackingData: Record<string, Record<number, TrackingData>>;
+  trackingData: Record<string, Record<string, TrackingData>>;
   activityLog: ActivityLog[];
   supervisorPin: string;
   login: (username: string) => void;
@@ -47,7 +48,7 @@ interface AppContextType {
   updateProfile: (username: string, profile: UserProfile) => void;
   deleteProfile: (username: string) => void;
   updateSchedule: (username: string, schedule: ScheduleBlock[]) => void;
-  updateTracking: (username: string, time: number, data: TrackingData) => void;
+  updateTracking: (username: string, blockId: string, data: TrackingData) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   updateSupervisorPin: (newPin: string) => void;
   exportData: () => void;
@@ -76,6 +77,7 @@ const defaultProfiles: Record<string, UserProfile> = {
 const defaultSchedules: Record<string, ScheduleBlock[]> = {
   isabela: [
     {
+      id: 'isabela-7-1',
       time: 7,
       label: '07:00 - 08:00',
       tasks: ['Verificar e-mails prioritários', 'Analisar dashboard de KPIs'],
@@ -83,6 +85,7 @@ const defaultSchedules: Record<string, ScheduleBlock[]> = {
       category: 'sistema',
     },
     {
+      id: 'isabela-8-1',
       time: 8,
       label: '08:00 - 09:00',
       tasks: ['Processar tratativas pendentes', 'Atualizar status de tickets'],
@@ -90,6 +93,7 @@ const defaultSchedules: Record<string, ScheduleBlock[]> = {
       category: 'sistema',
     },
     {
+      id: 'isabela-9-1',
       time: 9,
       label: '09:00 - 10:00',
       tasks: ['Reunião de alinhamento', 'Review de processos'],
@@ -97,6 +101,7 @@ const defaultSchedules: Record<string, ScheduleBlock[]> = {
       category: 'comunicação',
     },
     {
+      id: 'isabela-10-1',
       time: 10,
       label: '10:00 - 11:00',
       tasks: ['Intervalo', 'Coffee break'],
@@ -106,6 +111,7 @@ const defaultSchedules: Record<string, ScheduleBlock[]> = {
   ],
   rhyan: [
     {
+      id: 'rhyan-7-1',
       time: 7,
       label: '07:00 - 08:00',
       tasks: ['Check-in de sistemas', 'Verificar logs de monitoramento'],
@@ -113,6 +119,7 @@ const defaultSchedules: Record<string, ScheduleBlock[]> = {
       category: 'monitoramento',
     },
     {
+      id: 'rhyan-8-1',
       time: 8,
       label: '08:00 - 09:00',
       tasks: ['Executar rotinas programadas', 'Validar backups'],
@@ -133,9 +140,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const stored = localStorage.getItem('appSchedules');
     return stored ? JSON.parse(stored) : defaultSchedules;
   });
-  const [trackingData, setTrackingData] = useState<Record<string, Record<number, TrackingData>>>(() => {
+  const [trackingData, setTrackingData] = useState<Record<string, Record<string, TrackingData>>>(() => {
     const stored = localStorage.getItem('trackingData');
-    return stored ? JSON.parse(stored) : {};
+    const data = stored ? JSON.parse(stored) : {};
+    // Migrar dados antigos de number para string se necessário
+    return data;
   });
   const [activityLog, setActivityLog] = useState<ActivityLog[]>(() => {
     const stored = localStorage.getItem('activityLog');
@@ -234,19 +243,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const updateTracking = (username: string, time: number, data: TrackingData) => {
+  const updateTracking = (username: string, blockId: string, data: TrackingData) => {
     setTrackingData((prev) => ({
       ...prev,
       [username]: {
         ...(prev[username] || {}),
-        [time]: data,
+        [blockId]: data,
       },
     }));
     if (data.reportSent) {
       addActivityLog({
         type: 'report_sent',
         user: userProfiles[username]?.name || username,
-        message: `Enviou relatório do bloco ${time}h`,
+        message: `Enviou relatório do bloco ${blockId}`,
       });
     }
   };
