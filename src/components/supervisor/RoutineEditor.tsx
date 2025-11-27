@@ -13,10 +13,17 @@ const RoutineEditor = () => {
   const currentSchedule = schedules[selectedUser] || [];
 
   const addBlock = () => {
+    // Encontrar o próximo horário disponível
+    const existingTimes = currentSchedule.map(b => b.time);
+    let nextTime = 7;
+    while (existingTimes.includes(nextTime) && nextTime < 19) {
+      nextTime++;
+    }
+    
     const newBlock = {
       id: `${selectedUser}-${Date.now()}`,
-      time: 7,
-      label: '07:00 - 08:00',
+      time: nextTime,
+      label: `${String(nextTime).padStart(2, '0')}:00 - ${String(nextTime + 1).padStart(2, '0')}:00`,
       tasks: ['Nova tarefa'],
       priority: 'medium' as const,
       category: 'sistema' as const,
@@ -49,7 +56,7 @@ const RoutineEditor = () => {
     updateSchedule(selectedUser, newSchedule);
   };
 
-  const applyTemplate = (template: 'morning' | 'afternoon') => {
+  const applyTemplate = (template: 'morning' | 'afternoon' | 'full') => {
     const timestamp = Date.now();
     const templates = {
       morning: [
@@ -80,6 +87,20 @@ const RoutineEditor = () => {
           category: 'organização' as const,
         },
       ],
+      full: [
+        { id: `${selectedUser}-${timestamp}-1`, time: 7, label: '07:00 - 08:00', tasks: ['Check-in de sistemas'], priority: 'high' as const, category: 'sistema' as const },
+        { id: `${selectedUser}-${timestamp}-2`, time: 8, label: '08:00 - 09:00', tasks: ['Monitoramento'], priority: 'high' as const, category: 'monitoramento' as const },
+        { id: `${selectedUser}-${timestamp}-3`, time: 9, label: '09:00 - 10:00', tasks: ['Atendimento'], priority: 'medium' as const, category: 'comunicação' as const },
+        { id: `${selectedUser}-${timestamp}-4`, time: 10, label: '10:00 - 11:00', tasks: ['Processamento'], priority: 'medium' as const, category: 'sistema' as const },
+        { id: `${selectedUser}-${timestamp}-5`, time: 11, label: '11:00 - 12:00', tasks: ['Documentação'], priority: 'medium' as const, category: 'organização' as const },
+        { id: `${selectedUser}-${timestamp}-6`, time: 12, label: '12:00 - 13:00', tasks: ['Intervalo'], priority: 'medium' as const, category: 'organização' as const },
+        { id: `${selectedUser}-${timestamp}-7`, time: 13, label: '13:00 - 14:00', tasks: ['Revisão'], priority: 'medium' as const, category: 'monitoramento' as const },
+        { id: `${selectedUser}-${timestamp}-8`, time: 14, label: '14:00 - 15:00', tasks: ['Atendimento'], priority: 'medium' as const, category: 'comunicação' as const },
+        { id: `${selectedUser}-${timestamp}-9`, time: 15, label: '15:00 - 16:00', tasks: ['Processamento'], priority: 'medium' as const, category: 'sistema' as const },
+        { id: `${selectedUser}-${timestamp}-10`, time: 16, label: '16:00 - 17:00', tasks: ['Documentação'], priority: 'medium' as const, category: 'organização' as const },
+        { id: `${selectedUser}-${timestamp}-11`, time: 17, label: '17:00 - 18:00', tasks: ['Fechamento'], priority: 'high' as const, category: 'sistema' as const },
+        { id: `${selectedUser}-${timestamp}-12`, time: 18, label: '18:00 - 19:00', tasks: ['Backup e relatórios'], priority: 'high' as const, category: 'sistema' as const },
+      ],
     };
 
     updateSchedule(selectedUser, templates[template]);
@@ -93,12 +114,15 @@ const RoutineEditor = () => {
           <h2 className="text-2xl font-bold">Editor de Rotinas</h2>
           <p className="text-muted-foreground">Configure as rotinas de cada operador</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="secondary" size="sm" onClick={() => applyTemplate('morning')}>
             Template Manhã
           </Button>
           <Button variant="secondary" size="sm" onClick={() => applyTemplate('afternoon')}>
             Template Tarde
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => applyTemplate('full')}>
+            Template Completo (7h-19h)
           </Button>
         </div>
       </div>
@@ -127,17 +151,36 @@ const RoutineEditor = () => {
           <GlassCard key={block.id} className="animate-slideUp">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <input
-                  type="text"
-                  value={block.label}
-                  onChange={(e) => {
-                    const newSchedule = [...currentSchedule];
-                    newSchedule[blockIndex].label = e.target.value;
-                    updateSchedule(selectedUser, newSchedule);
-                  }}
-                  className="text-xl font-bold bg-transparent border-none focus:outline-none w-full"
-                />
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 items-center mb-2">
+                  <select
+                    value={block.time}
+                    onChange={(e) => {
+                      const newSchedule = [...currentSchedule];
+                      const newTime = parseInt(e.target.value);
+                      newSchedule[blockIndex].time = newTime;
+                      newSchedule[blockIndex].label = `${String(newTime).padStart(2, '0')}:00 - ${String(newTime + 1).padStart(2, '0')}:00`;
+                      updateSchedule(selectedUser, newSchedule);
+                    }}
+                    className="px-3 py-1 rounded-lg bg-muted border border-border text-sm font-bold"
+                  >
+                    {Array.from({ length: 13 }, (_, i) => i + 7).map((hour) => (
+                      <option key={hour} value={hour}>
+                        {String(hour).padStart(2, '0')}:00
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={block.label}
+                    onChange={(e) => {
+                      const newSchedule = [...currentSchedule];
+                      newSchedule[blockIndex].label = e.target.value;
+                      updateSchedule(selectedUser, newSchedule);
+                    }}
+                    className="flex-1 text-xl font-bold bg-transparent border-none focus:outline-none"
+                  />
+                </div>
+                <div className="flex gap-2 mt-2 flex-wrap">
                   <select
                     value={block.priority}
                     onChange={(e) => {
