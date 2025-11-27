@@ -95,9 +95,8 @@ const Dashboard = () => {
 
       {/* Controle Detalhado por Operador */}
       <div className="space-y-6">
-        {Object.entries(userProfiles)
-          .filter(([username]) => activeUsers.has(username))
-          .map(([username, profile]) => {
+        {Object.entries(userProfiles).map(([username, profile]) => {
+          const isActive = activeUsers.has(username);
           const schedule = schedules[username] || [];
           const tracking = trackingData[username] || {};
           const currentHour = new Date().getHours();
@@ -111,10 +110,16 @@ const Dashboard = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl font-bold">{profile.name}</h3>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                      Online
-                    </span>
+                    {isActive ? (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-success/20 text-success flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                        Online
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                        Offline
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">{profile.role}</p>
                 </div>
@@ -205,14 +210,6 @@ const Dashboard = () => {
             </GlassCard>
           );
         })}
-        {Object.keys(userProfiles).filter((u) => activeUsers.has(u)).length === 0 && (
-          <GlassCard>
-            <div className="text-center py-12">
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">Nenhum operador ativo no momento</p>
-            </div>
-          </GlassCard>
-        )}
       </div>
 
       {/* Activity Log */}
