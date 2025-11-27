@@ -42,6 +42,7 @@ interface AppContextType {
   trackingData: Record<string, Record<string, TrackingData>>;
   activityLog: ActivityLog[];
   supervisorPin: string;
+  activeUsers: Set<string>;
   login: (username: string) => void;
   loginSupervisor: () => void;
   logout: () => void;
@@ -132,6 +133,7 @@ const defaultSchedules: Record<string, ScheduleBlock[]> = {
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [isSupervisor, setIsSupervisor] = useState(false);
+  const [activeUsers, setActiveUsers] = useState<Set<string>>(new Set());
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>(() => {
     const stored = localStorage.getItem('userProfiles');
     return stored ? JSON.parse(stored) : defaultProfiles;
@@ -178,6 +180,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const login = (username: string) => {
     setCurrentUser(username);
     setIsSupervisor(false);
+    setActiveUsers((prev) => new Set(prev).add(username));
     addActivityLog({
       type: 'login',
       user: userProfiles[username]?.name || username,
@@ -197,6 +200,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     const userName = currentUser ? userProfiles[currentUser]?.name : 'Supervisor';
+    if (currentUser) {
+      setActiveUsers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(currentUser);
+        return newSet;
+      });
+    }
     addActivityLog({
       type: 'login',
       user: userName,
@@ -309,6 +319,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         trackingData,
         activityLog,
         supervisorPin,
+        activeUsers,
         login,
         loginSupervisor,
         logout,
