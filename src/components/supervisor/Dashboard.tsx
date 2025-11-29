@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { StatCard } from '@/components/StatCard';
 import { GlassCard } from '@/components/GlassCard';
+import { Button } from '@/components/Button';
 import { 
   TrendingUp, CheckCircle2, FileText, Users as UsersIcon,
-  Clock, AlertTriangle, User, Users
+  Clock, AlertTriangle, User, Users, Calendar, List
 } from 'lucide-react';
+import CalendarView from './CalendarView';
 
 const Dashboard = () => {
   const { userProfiles, schedules, trackingData, activityLog, activeUsers } = useApp();
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   const totalUsers = Object.keys(userProfiles).length;
   
@@ -45,6 +49,29 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 animate-fadeIn">
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Painel de Controle</h2>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setViewMode('list')}
+            variant={viewMode === 'list' ? 'primary' : 'outline'}
+            className="flex items-center gap-2"
+          >
+            <List className="w-4 h-4" />
+            Lista
+          </Button>
+          <Button
+            onClick={() => setViewMode('calendar')}
+            variant={viewMode === 'calendar' ? 'primary' : 'outline'}
+            className="flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4" />
+            Calendário
+          </Button>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -93,8 +120,13 @@ const Dashboard = () => {
         </GlassCard>
       )}
 
-      {/* Controle Detalhado por Operador */}
-      <div className="space-y-6">
+      {/* Content based on view mode */}
+      {viewMode === 'calendar' ? (
+        <CalendarView />
+      ) : (
+        <>
+          {/* Controle Detalhado por Operador */}
+          <div className="space-y-6">
         {Object.entries(userProfiles).map(([username, profile]) => {
           const isActive = activeUsers.has(username);
           const schedule = schedules[username] || [];
@@ -210,9 +242,9 @@ const Dashboard = () => {
             </GlassCard>
           );
         })}
-      </div>
+          </div>
 
-      {/* Activity Log */}
+          {/* Activity Log */}
       <GlassCard>
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Clock className="w-5 h-5 text-primary" />
@@ -238,7 +270,9 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-      </GlassCard>
+          </GlassCard>
+        </>
+      )}
     </div>
   );
 };
