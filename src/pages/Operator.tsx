@@ -45,7 +45,18 @@ const Operator = () => {
 
   const profile = userProfiles[currentUser];
   const userSchedule = schedules[currentUser] || [];
-  const userTracking = trackingData[currentUser] || {};
+  const allUserTracking = trackingData[currentUser] || {};
+  
+  // Filter tracking to show only today's data
+  const today = new Date().toISOString().split('T')[0];
+  const userTracking: Record<string, any> = {};
+  Object.entries(allUserTracking).forEach(([key, value]) => {
+    // Extract blockId from date-blockId format
+    if (key.startsWith(today)) {
+      const blockId = key.substring(11); // Remove "YYYY-MM-DD-" prefix
+      userTracking[blockId] = value;
+    }
+  });
 
   const currentHour = simulationMode ? simulatedTime : new Date().getHours();
 
@@ -74,7 +85,7 @@ const Operator = () => {
     updateTracking(currentUser, blockId, { 
       ...existing, 
       reportSent: true, 
-      timestamp: `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
+      timestamp: now.toISOString()
     });
     addToast('Relatório enviado com sucesso!', 'success');
   };
@@ -304,12 +315,12 @@ const Operator = () => {
                     rows={3}
                     placeholder="Descreva as atividades realizadas..."
                   />
-                  {tracking.reportSent ? (
+                   {tracking.reportSent ? (
                     <div className="flex items-center gap-2 text-sm text-success">
                       <CheckCircle2 className="w-4 h-4" />
-                      Relatório enviado às {tracking.timestamp}
+                      Relatório enviado às {new Date(tracking.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
-                  ) : (
+                   ) : (
                     <Button size="sm" onClick={() => handleReportSend(block.id)}>
                       Enviar Relatório
                     </Button>

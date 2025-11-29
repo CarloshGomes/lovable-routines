@@ -13,6 +13,19 @@ const Dashboard = () => {
   const { userProfiles, schedules, trackingData, activityLog, activeUsers } = useApp();
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
+  // Filter tracking data to show only today's data in list view
+  const today = new Date().toISOString().split('T')[0];
+  const todayTrackingData: Record<string, Record<string, any>> = {};
+  Object.entries(trackingData).forEach(([username, userTracking]) => {
+    todayTrackingData[username] = {};
+    Object.entries(userTracking).forEach(([key, value]) => {
+      if (key.startsWith(today)) {
+        const blockId = key.substring(11); // Remove "YYYY-MM-DD-" prefix
+        todayTrackingData[username][blockId] = value;
+      }
+    });
+  });
+
   const totalUsers = Object.keys(userProfiles).length;
   
   let totalTasks = 0;
@@ -21,11 +34,11 @@ const Dashboard = () => {
 
   Object.keys(schedules).forEach((username) => {
     const schedule = schedules[username];
-    const tracking = trackingData[username] || {};
+    const tracking = todayTrackingData[username] || {};
     
     schedule.forEach((block) => {
       totalTasks += block.tasks.length;
-      const blockTracking = tracking[block.time];
+      const blockTracking = tracking[block.id];
       if (blockTracking) {
         completedTasks += blockTracking.tasks.length;
         if (blockTracking.reportSent) totalReports++;
@@ -37,10 +50,10 @@ const Dashboard = () => {
 
   const currentHour = new Date().getHours();
   const lateOperators = Object.entries(schedules).filter(([username, schedule]) => {
-    const tracking = trackingData[username] || {};
+    const tracking = todayTrackingData[username] || {};
     return schedule.some((block) => {
       if (block.time < currentHour) {
-        const blockTracking = tracking[block.time];
+        const blockTracking = tracking[block.id];
         return !blockTracking || blockTracking.tasks.length < block.tasks.length;
       }
       return false;
@@ -127,10 +140,10 @@ const Dashboard = () => {
         <>
           {/* Controle Detalhado por Operador */}
           <div className="space-y-6">
-        {Object.entries(userProfiles).map(([username, profile]) => {
+          {Object.entries(userProfiles).map(([username, profile]) => {
           const isActive = activeUsers.has(username);
           const schedule = schedules[username] || [];
-          const tracking = trackingData[username] || {};
+          const tracking = todayTrackingData[username] || {};
           const currentHour = new Date().getHours();
           
           return (
