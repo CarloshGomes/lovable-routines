@@ -254,11 +254,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateTracking = (username: string, blockId: string, data: TrackingData) => {
+    // Add today's date to the key to make each day independent
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateBlockId = `${today}-${blockId}`;
+    
     setTrackingData((prev) => ({
       ...prev,
       [username]: {
         ...(prev[username] || {}),
-        [blockId]: data,
+        [dateBlockId]: data,
       },
     }));
     if (data.reportSent) {
