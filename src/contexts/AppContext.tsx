@@ -145,7 +145,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [trackingData, setTrackingData] = useState<Record<string, Record<string, TrackingData>>>(() => {
     const stored = localStorage.getItem('trackingData');
     const data = stored ? JSON.parse(stored) : {};
-    // Migrar dados antigos de number para string se necessário
     return data;
   });
   const [activityLog, setActivityLog] = useState<ActivityLog[]>(() => {
@@ -156,6 +155,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const stored = localStorage.getItem('supervisorPin');
     return stored || '1234';
   });
+
+  // BroadcastChannel para sincronização em tempo real
+  const [broadcastChannel] = useState(() => new BroadcastChannel('app-sync'));
 
   useEffect(() => {
     localStorage.setItem('userProfiles', JSON.stringify(userProfiles));
@@ -177,14 +179,103 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('supervisorPin', supervisorPin);
   }, [supervisorPin]);
 
+  // Sincronização em tempo real via BroadcastChannel
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const { type, data } = event.data;
+      
+      switch (type) {
+        case 'TRACKING_UPDATE':
+          setTrackingData(data);
+          break;
+        case 'PROFILE_UPDATE':
+          setUserProfiles(data);
+          break;
+        case 'SCHEDULE_UPDATE':
+          setSchedules(data);
+          break;
+        case 'ACTIVITY_LOG':
+          setActivityLog(data);
+          break;
+        case 'HEARTBEAT':
+          // Atualizar usuários ativos baseado em heartbeats
+          const { username, timestamp } = data;
+          const now = Date.now();
+          // Se o heartbeat é recente (últimos 10 segundos), considera ativo
+          if (now - timestamp < 10000) {
+            setActiveUsers(prev => new Set(prev).add(username));
+          }
+          break;
+        case 'LOGOUT':
+          setActiveUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(data.username);
+            return newSet;
+          });
+          break;
+      }
+    };
+
+    broadcastChannel.addEventListener('message', handleMessage);
+    
+    // Storage event como fallback para compatibilidade
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'trackingData' && e.newValue) {
+        setTrackingData(JSON.parse(e.newValue));
+      } else if (e.key === 'userProfiles' && e.newValue) {
+        setUserProfiles(JSON.parse(e.newValue));
+      } else if (e.key === 'appSchedules' && e.newValue) {
+        setSchedules(JSON.parse(e.newValue));
+      } else if (e.key === 'activityLog' && e.newValue) {
+        setActivityLog(JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      broadcastChannel.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [broadcastChannel]);
+
+  // Limpar usuários inativos periodicamente
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const heartbeats = localStorage.getItem('userHeartbeats');
+      if (heartbeats) {
+        const parsed = JSON.parse(heartbeats);
+        const now = Date.now();
+        const active = Object.entries(parsed)
+          .filter(([_, timestamp]) => now - (timestamp as number) < 10000)
+          .map(([username]) => username);
+        setActiveUsers(new Set(active));
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const login = (username: string) => {
     setCurrentUser(username);
     setIsSupervisor(false);
     setActiveUsers((prev) => new Set(prev).add(username));
+    
+    // Registrar heartbeat inicial
+    const heartbeats = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+    heartbeats[username] = Date.now();
+    localStorage.setItem('userHeartbeats', JSON.stringify(heartbeats));
+    
     addActivityLog({
       type: 'login',
       user: userProfiles[username]?.name || username,
       message: 'Entrou no sistema',
+    });
+    
+    // Broadcast do login
+    broadcastChannel.postMessage({
+      type: 'HEARTBEAT',
+      data: { username, timestamp: Date.now() }
     });
   };
 
@@ -200,24 +291,47 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     const userName = currentUser ? userProfiles[currentUser]?.name : 'Supervisor';
+    const logoutUser = currentUser;
+    
     if (currentUser) {
       setActiveUsers((prev) => {
         const newSet = new Set(prev);
         newSet.delete(currentUser);
         return newSet;
       });
+      
+      // Remover heartbeat
+      const heartbeats = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+      delete heartbeats[currentUser];
+      localStorage.setItem('userHeartbeats', JSON.stringify(heartbeats));
+      
+      // Broadcast do logout
+      broadcastChannel.postMessage({
+        type: 'LOGOUT',
+        data: { username: currentUser }
+      });
     }
+    
     addActivityLog({
       type: 'login',
       user: userName,
       message: 'Saiu do sistema',
     });
+    
     setCurrentUser(null);
     setIsSupervisor(false);
   };
 
   const updateProfile = (username: string, profile: UserProfile) => {
-    setUserProfiles((prev) => ({ ...prev, [username]: profile }));
+    const newProfiles = { ...userProfiles, [username]: profile };
+    setUserProfiles(newProfiles);
+    
+    // Broadcast da atualização
+    broadcastChannel.postMessage({
+      type: 'PROFILE_UPDATE',
+      data: newProfiles
+    });
+    
     addActivityLog({
       type: 'profile_edit',
       user: 'Supervisor',
@@ -245,7 +359,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateSchedule = (username: string, schedule: ScheduleBlock[]) => {
-    setSchedules((prev) => ({ ...prev, [username]: schedule }));
+    const newSchedules = { ...schedules, [username]: schedule };
+    setSchedules(newSchedules);
+    
+    // Broadcast da atualização
+    broadcastChannel.postMessage({
+      type: 'SCHEDULE_UPDATE',
+      data: newSchedules
+    });
+    
     addActivityLog({
       type: 'schedule_edit',
       user: 'Supervisor',
@@ -258,13 +380,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const dateBlockId = `${today}-${blockId}`;
     
-    setTrackingData((prev) => ({
-      ...prev,
+    const newTrackingData = {
+      ...trackingData,
       [username]: {
-        ...(prev[username] || {}),
+        ...(trackingData[username] || {}),
         [dateBlockId]: data,
       },
-    }));
+    };
+    
+    setTrackingData(newTrackingData);
+    
+    // Broadcast da atualização
+    broadcastChannel.postMessage({
+      type: 'TRACKING_UPDATE',
+      data: newTrackingData
+    });
+    
     if (data.reportSent) {
       addActivityLog({
         type: 'report_sent',
@@ -280,7 +411,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       id: Date.now(),
       timestamp: new Date().toISOString(),
     };
-    setActivityLog((prev) => [newLog, ...prev].slice(0, 100));
+    const newActivityLog = [newLog, ...activityLog].slice(0, 100);
+    setActivityLog(newActivityLog);
+    
+    // Broadcast da atualização
+    broadcastChannel.postMessage({
+      type: 'ACTIVITY_LOG',
+      data: newActivityLog
+    });
   };
 
   const updateSupervisorPin = (newPin: string) => {
