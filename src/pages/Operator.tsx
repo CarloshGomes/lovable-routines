@@ -28,6 +28,31 @@ const Operator = () => {
     }
   }, [currentUser, navigate]);
 
+  // Heartbeat para manter status online
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const sendHeartbeat = () => {
+      const heartbeats = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+      heartbeats[currentUser] = Date.now();
+      localStorage.setItem('userHeartbeats', JSON.stringify(heartbeats));
+      
+      // Broadcast heartbeat
+      const channel = new BroadcastChannel('app-sync');
+      channel.postMessage({
+        type: 'HEARTBEAT',
+        data: { username: currentUser, timestamp: Date.now() }
+      });
+      channel.close();
+    };
+
+    // Enviar heartbeat a cada 5 segundos
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 5000);
+
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
   useEffect(() => {
     if (focusRunning && focusTime > 0) {
       const timer = setInterval(() => {
