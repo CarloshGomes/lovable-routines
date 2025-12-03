@@ -11,16 +11,41 @@ import logoImage from '@/assets/logo.svg';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { userProfiles, supervisorPin, login, loginSupervisor } = useApp();
+  const { userProfiles, supervisorPin, login, loginSupervisor, validateOperatorPin } = useApp();
   const { theme, toggleTheme } = useTheme();
   const { addToast } = useToast();
   const [showPinModal, setShowPinModal] = useState(false);
+  const [showOperatorPinModal, setShowOperatorPinModal] = useState(false);
+  const [selectedOperator, setSelectedOperator] = useState<string | null>(null);
   const [pin, setPin] = useState('');
 
-  const handleLogin = (username: string) => {
-    login(username);
-    addToast(`Bem-vindo, ${userProfiles[username].name}!`, 'success');
-    navigate('/operator');
+  const handleOperatorClick = (username: string) => {
+    const profile = userProfiles[username];
+    if (profile.pin) {
+      // Operador tem PIN, mostrar modal
+      setSelectedOperator(username);
+      setPin('');
+      setShowOperatorPinModal(true);
+    } else {
+      // Operador sem PIN, login direto
+      login(username);
+      addToast(`Bem-vindo, ${profile.name}!`, 'success');
+      navigate('/operator');
+    }
+  };
+
+  const handleOperatorPinSubmit = () => {
+    if (!selectedOperator) return;
+    
+    if (validateOperatorPin(selectedOperator, pin)) {
+      login(selectedOperator);
+      addToast(`Bem-vindo, ${userProfiles[selectedOperator].name}!`, 'success');
+      setShowOperatorPinModal(false);
+      navigate('/operator');
+    } else {
+      addToast('PIN incorreto', 'error');
+      setPin('');
+    }
   };
 
   const handleSupervisorAccess = () => {
@@ -88,7 +113,7 @@ const Login = () => {
             {Object.entries(userProfiles).map(([username, profile], index) => (
               <button
                 key={username}
-                onClick={() => handleLogin(username)}
+                onClick={() => handleOperatorClick(username)}
                 className="glass-card p-6 hover:scale-[1.02] transition-all duration-300 text-left group relative overflow-hidden animate-slideUp"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
@@ -105,6 +130,11 @@ const Login = () => {
                         {profile.name}
                       </h3>
                       <p className="text-sm md:text-base text-muted-foreground">{profile.role}</p>
+                      {profile.pin && (
+                        <span className="text-xs text-primary/70 flex items-center gap-1 mt-1">
+                          <Shield className="w-3 h-3" /> PIN protegido
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronRight className="w-6 h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
@@ -132,6 +162,54 @@ const Login = () => {
         </div>
       </div>
 
+      {/* Modal PIN Operador */}
+      <Modal
+        isOpen={showOperatorPinModal}
+        onClose={() => {
+          setShowOperatorPinModal(false);
+          setSelectedOperator(null);
+          setPin('');
+        }}
+        title="Acesso Operador"
+        size="sm"
+      >
+        <div className="space-y-4">
+          {selectedOperator && (
+            <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-xl">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-${userProfiles[selectedOperator]?.color}-500/20`}>
+                {userProfiles[selectedOperator]?.avatar}
+              </div>
+              <div>
+                <p className="font-semibold">{userProfiles[selectedOperator]?.name}</p>
+                <p className="text-sm text-muted-foreground">{userProfiles[selectedOperator]?.role}</p>
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium mb-2">Digite seu PIN</label>
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleOperatorPinSubmit()}
+              className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none text-center text-2xl tracking-widest"
+              placeholder="••••"
+              maxLength={10}
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setShowOperatorPinModal(false)} className="flex-1">
+              Cancelar
+            </Button>
+            <Button onClick={handleOperatorPinSubmit} className="flex-1">
+              Entrar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal PIN Supervisor */}
       <Modal
         isOpen={showPinModal}
         onClose={() => {
