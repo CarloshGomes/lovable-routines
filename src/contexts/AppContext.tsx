@@ -6,6 +6,7 @@ export interface UserProfile {
   color: string;
   avatar: string;
   email: string;
+  pin?: string; // PIN de acesso do operador
 }
 
 export interface ScheduleBlock {
@@ -44,6 +45,7 @@ interface AppContextType {
   supervisorPin: string;
   activeUsers: Set<string>;
   login: (username: string) => void;
+  validateOperatorPin: (username: string, pin: string) => boolean;
   loginSupervisor: () => void;
   logout: () => void;
   updateProfile: (username: string, profile: UserProfile) => void;
@@ -65,6 +67,7 @@ const defaultProfiles: Record<string, UserProfile> = {
     color: 'purple',
     avatar: '👩‍💼',
     email: 'isabela@empresa.com',
+    pin: '1234',
   },
   rhyan: {
     name: 'Rhyan',
@@ -72,6 +75,7 @@ const defaultProfiles: Record<string, UserProfile> = {
     color: 'indigo',
     avatar: '👨‍💼',
     email: 'rhyan@empresa.com',
+    pin: '1234',
   },
 };
 
@@ -255,6 +259,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const validateOperatorPin = (username: string, pin: string): boolean => {
+    const profile = userProfiles[username];
+    if (!profile?.pin) return true; // Se não tem PIN, permite acesso
+    return profile.pin === pin;
+  };
 
   const login = (username: string) => {
     setCurrentUser(username);
@@ -463,6 +473,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         supervisorPin,
         activeUsers,
         login,
+        validateOperatorPin,
         loginSupervisor,
         logout,
         updateProfile,

@@ -4,7 +4,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/Button';
 import { GlassCard } from '@/components/GlassCard';
 import { Modal } from '@/components/Modal';
-import { Plus, Edit2, Trash2, User } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Shield, Eye, EyeOff } from 'lucide-react';
 
 const colors = ['blue', 'purple', 'green', 'indigo', 'red', 'yellow', 'pink', 'cyan'];
 const avatars = ['👨‍💼', '👩‍💼', '👨‍💻', '👩‍💻', '👨‍🔧', '👩‍🔧', '👨‍🎨', '👩‍🎨'];
@@ -17,6 +17,7 @@ const TeamManager = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingUsername, setEditingUsername] = useState<string | null>(null);
   const [deleteUsername, setDeleteUsername] = useState<string | null>(null);
+  const [showPin, setShowPin] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -24,12 +25,17 @@ const TeamManager = () => {
     color: 'blue',
     avatar: '👨‍💼',
     email: '',
+    pin: '',
   });
 
   const handleEdit = (username: string) => {
     const profile = userProfiles[username];
-    setFormData(profile);
+    setFormData({
+      ...profile,
+      pin: profile.pin || '',
+    });
     setEditingUsername(username);
+    setShowPin(false);
     setShowModal(true);
   };
 
@@ -40,8 +46,10 @@ const TeamManager = () => {
       color: 'blue',
       avatar: '👨‍💼',
       email: '',
+      pin: '',
     });
     setEditingUsername(null);
+    setShowPin(false);
     setShowModal(true);
   };
 
@@ -58,7 +66,16 @@ const TeamManager = () => {
       return;
     }
 
-    updateProfile(username, formData);
+    const profileData = {
+      name: formData.name,
+      role: formData.role,
+      color: formData.color,
+      avatar: formData.avatar,
+      email: formData.email,
+      pin: formData.pin || undefined,
+    };
+
+    updateProfile(username, profileData);
     addToast(editingUsername ? 'Operador atualizado!' : 'Operador adicionado!', 'success');
     setShowModal(false);
   };
@@ -101,6 +118,11 @@ const TeamManager = () => {
                 <h3 className="text-lg font-bold">{profile.name}</h3>
                 <p className="text-sm text-muted-foreground">{profile.role}</p>
                 <p className="text-xs text-muted-foreground mt-1">{profile.email}</p>
+                {profile.pin && (
+                  <span className="inline-flex items-center gap-1 text-xs text-primary mt-1">
+                    <Shield className="w-3 h-3" /> PIN ativo
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
@@ -167,6 +189,33 @@ const TeamManager = () => {
               className="w-full px-4 py-2 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none"
               placeholder="email@empresa.com"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-primary" />
+              PIN de Acesso
+            </label>
+            <div className="relative">
+              <input
+                type={showPin ? 'text' : 'password'}
+                value={formData.pin}
+                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none pr-12"
+                placeholder="Deixe vazio para acesso sem PIN"
+                maxLength={10}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Se definido, o operador precisará digitar o PIN para acessar o sistema.
+            </p>
           </div>
 
           <div>
