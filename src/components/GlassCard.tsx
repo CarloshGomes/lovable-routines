@@ -3,14 +3,21 @@ import { cn } from '@/lib/utils';
 
 interface GlassCardProps extends HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
+  variant?: 'default' | 'elevated' | 'subtle';
 }
 
 export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
-  ({ className, children, ...props }, ref) => {
+  ({ className, children, variant = 'default', ...props }, ref) => {
+    const variants = {
+      default: 'glass-card p-6',
+      elevated: 'glass-card p-6 shadow-premium-lg hover:shadow-glow transition-shadow duration-300',
+      subtle: 'bg-card/50 backdrop-blur-xl border border-border/50 rounded-2xl p-6',
+    };
+
     return (
       <div
         ref={ref}
-        className={cn('glass-card p-6', className)}
+        className={cn(variants[variant], className)}
         {...props}
       >
         {children}

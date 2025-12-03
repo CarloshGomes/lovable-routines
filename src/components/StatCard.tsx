@@ -14,33 +14,43 @@ export const StatCard = ({ title, value, icon: Icon, trend, color = 'text-primar
     switch (color) {
       case 'text-primary':
         return {
-          bg: 'bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5',
-          glow: 'shadow-lg shadow-primary/20',
-          icon: 'text-primary'
+          bg: 'bg-gradient-to-br from-primary/15 to-primary/5',
+          border: 'border-primary/20',
+          glow: 'group-hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]',
+          icon: 'text-primary',
+          ring: 'ring-primary/20'
         };
       case 'text-success':
         return {
-          bg: 'bg-gradient-to-br from-success/20 via-success/10 to-success/5',
-          glow: 'shadow-lg shadow-success/20',
-          icon: 'text-success'
+          bg: 'bg-gradient-to-br from-success/15 to-success/5',
+          border: 'border-success/20',
+          glow: 'group-hover:shadow-[0_0_30px_-5px_hsl(var(--success)/0.3)]',
+          icon: 'text-success',
+          ring: 'ring-success/20'
         };
       case 'text-accent':
         return {
-          bg: 'bg-gradient-to-br from-accent/20 via-accent/10 to-accent/5',
-          glow: 'shadow-lg shadow-accent/20',
-          icon: 'text-accent'
+          bg: 'bg-gradient-to-br from-accent/15 to-accent/5',
+          border: 'border-accent/20',
+          glow: 'group-hover:shadow-[0_0_30px_-5px_hsl(var(--accent)/0.3)]',
+          icon: 'text-accent',
+          ring: 'ring-accent/20'
         };
       case 'text-warning':
         return {
-          bg: 'bg-gradient-to-br from-warning/20 via-warning/10 to-warning/5',
-          glow: 'shadow-lg shadow-warning/20',
-          icon: 'text-warning'
+          bg: 'bg-gradient-to-br from-warning/15 to-warning/5',
+          border: 'border-warning/20',
+          glow: 'group-hover:shadow-[0_0_30px_-5px_hsl(var(--warning)/0.3)]',
+          icon: 'text-warning',
+          ring: 'ring-warning/20'
         };
       default:
         return {
-          bg: 'bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5',
-          glow: 'shadow-lg shadow-primary/20',
-          icon: color
+          bg: 'bg-gradient-to-br from-primary/15 to-primary/5',
+          border: 'border-primary/20',
+          glow: 'group-hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]',
+          icon: color,
+          ring: 'ring-primary/20'
         };
     }
   };
@@ -48,37 +58,40 @@ export const StatCard = ({ title, value, icon: Icon, trend, color = 'text-primar
   const colorClasses = getColorClasses();
 
   return (
-    <GlassCard className="animate-slideUp group hover:scale-[1.02] transition-all duration-300 hover:shadow-xl relative overflow-hidden">
-      {/* Animated background glow */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    <GlassCard className={`animate-slideUp group hover:scale-[1.02] transition-all duration-300 ${colorClasses.glow} relative overflow-hidden`}>
+      {/* Gradient overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-accent/0 group-hover:from-primary/[0.03] group-hover:to-accent/[0.03] transition-all duration-500" />
       
-      <div className="relative flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs uppercase tracking-wider font-medium text-muted-foreground mb-2 opacity-80">
+      {/* Animated corner accent */}
+      <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground/80 mb-2">
             {title}
           </p>
-          <p className="text-4xl font-extrabold bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent mb-1">
+          <p className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
             {value}
           </p>
           {trend !== undefined && (
             <div className={`flex items-center gap-1.5 mt-3 text-sm font-semibold ${trend >= 0 ? 'text-success' : 'text-danger'}`}>
-              {trend >= 0 ? (
-                <TrendingUp className="w-4 h-4 animate-bounce" />
-              ) : (
-                <TrendingDown className="w-4 h-4 animate-bounce" />
-              )}
-              <span className="flex items-center gap-0.5">
+              <div className={`p-1 rounded-full ${trend >= 0 ? 'bg-success/10' : 'bg-danger/10'}`}>
+                {trend >= 0 ? (
+                  <TrendingUp className="w-3.5 h-3.5" />
+                ) : (
+                  <TrendingDown className="w-3.5 h-3.5" />
+                )}
+              </div>
+              <span>
                 {trend >= 0 ? '+' : ''}{Math.abs(trend)}%
               </span>
             </div>
           )}
         </div>
         
-        <div className={`relative p-4 rounded-2xl ${colorClasses.bg} ${colorClasses.glow} 
-                        transition-all duration-300 group-hover:scale-110 group-hover:rotate-3`}>
-          {/* Icon glow effect */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <Icon className={`w-7 h-7 ${colorClasses.icon} relative z-10 transition-transform duration-300 group-hover:scale-110`} strokeWidth={2.5} />
+        <div className={`relative p-3.5 rounded-2xl ${colorClasses.bg} border ${colorClasses.border} ring-1 ${colorClasses.ring}
+                        transition-all duration-300 ease-out group-hover:scale-110 group-hover:-rotate-3`}>
+          <Icon className={`w-6 h-6 ${colorClasses.icon} transition-transform duration-300`} strokeWidth={2} />
         </div>
       </div>
     </GlassCard>

@@ -89,11 +89,14 @@ const Login = () => {
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl -z-10 animate-glow" />
             </div>
           </div>
-          <div className="space-y-3">
-            <h1 className="text-4xl md:text-6xl font-bold text-gradient tracking-tight">
-              Sistema de Rotinas
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
+              Sistema de{' '}
+              <span className="bg-gradient-to-r from-primary via-accent to-primary-light bg-clip-text text-transparent">
+                Rotinas
+              </span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground font-medium">
+            <p className="text-base md:text-lg text-muted-foreground font-medium">
               Gestão Operacional Inteligente
             </p>
           </div>
