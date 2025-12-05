@@ -7,8 +7,9 @@ import { GlassCard } from '@/components/GlassCard';
 import { Greeting } from '@/components/Greeting';
 import { 
   LogOut, HelpCircle, Focus, Clock, Play, Pause, RotateCcw,
-  CheckCircle2, Circle, Filter
+  CheckCircle2, Circle, Filter, Zap, TrendingUp
 } from 'lucide-react';
+import logoImage from '@/assets/logo.svg';
 
 const Operator = () => {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ const Operator = () => {
   const handleTaskToggle = (blockId: string, taskIndex: number) => {
     const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
     const tasks = existing.tasks.includes(taskIndex)
-      ? existing.tasks.filter((t) => t !== taskIndex)
+      ? existing.tasks.filter((t: number) => t !== taskIndex)
       : [...existing.tasks, taskIndex];
     
     updateTracking(currentUser, blockId, { ...existing, tasks });
@@ -127,7 +128,7 @@ const Operator = () => {
   });
 
   const totalTasks = userSchedule.reduce((sum, block) => sum + block.tasks.length, 0);
-  const completedTasks = Object.values(userTracking).reduce((sum, t) => sum + t.tasks.length, 0);
+  const completedTasks = Object.values(userTracking).reduce((sum: number, t: any) => sum + t.tasks.length, 0);
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const getBlockStatus = (blockId: string, time: number) => {
@@ -161,53 +162,86 @@ const Operator = () => {
   };
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen pb-32 bg-background">
       {/* Background */}
       <div className="fixed inset-0 -z-10">
-        <div className="absolute top-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulseSlow" />
-        <div className="absolute bottom-40 left-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulseSlow" style={{ animationDelay: '2s' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+        <div className="absolute top-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-float opacity-60" />
+        <div className="absolute bottom-40 left-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float opacity-50" style={{ animationDelay: '-3s' }} />
       </div>
 
-      {/* Header */}
-      <header className="glass sticky top-0 z-40 border-b border-border">
+      {/* Premium Header */}
+      <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-2xl border-b border-border/50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Left - Logo & User Info */}
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-${profile.color}-500/20`}>
-                {profile.avatar}
+              <div className="relative hidden sm:block">
+                <img src={logoImage} alt="Logo" className="w-10 h-10 object-contain" />
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg" />
               </div>
-              <div>
-                <Greeting name={profile.name} />
-                <p className="text-sm text-muted-foreground">{profile.role}</p>
-              </div>
+              
+              <div className="h-8 w-px bg-border/50 hidden sm:block" />
+              
+              <Greeting 
+                name={profile.name} 
+                showRole 
+                role={profile.role} 
+                avatar={profile.avatar}
+                size="md"
+              />
             </div>
 
+            {/* Right - Actions */}
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setFocusMode(!focusMode)}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setFocusMode(!focusMode)}
+                className={focusMode ? 'bg-primary/10 text-primary' : ''}
+              >
                 <Focus className="w-4 h-4" />
-                Foco
+                <span className="hidden sm:inline">Foco</span>
               </Button>
               <Button variant="ghost" size="sm">
                 <HelpCircle className="w-4 h-4" />
-                Ajuda
+                <span className="hidden sm:inline">Ajuda</span>
               </Button>
-              <Button variant="danger" size="sm" onClick={() => { logout(); navigate('/'); }}>
+              <Button 
+                variant="danger" 
+                size="sm" 
+                onClick={() => { logout(); navigate('/'); }}
+                className="shadow-lg shadow-danger/20"
+              >
                 <LogOut className="w-4 h-4" />
-                Sair
+                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>
 
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span>Progresso do Dia</span>
-              <span className="font-bold">{Math.round(progress)}%</span>
+          {/* Progress Bar */}
+          <div className="mt-4 bg-muted/50 rounded-2xl p-4 border border-border/50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                </div>
+                <span className="text-sm font-medium">Progresso do Dia</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-foreground">{Math.round(progress)}%</span>
+                <div className="text-xs text-muted-foreground">
+                  {completedTasks}/{totalTasks} tarefas
+                </div>
+              </div>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-3 bg-muted rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-primary transition-all duration-500"
+                className="h-full bg-gradient-to-r from-primary via-primary to-accent rounded-full transition-all duration-500 relative"
                 style={{ width: `${progress}%` }}
-              />
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
+              </div>
             </div>
           </div>
         </div>
@@ -215,31 +249,23 @@ const Operator = () => {
 
       {/* Filters */}
       <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-2">
-          <Button
-            variant={filter === 'all' ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('all')}
-          >
-            <Filter className="w-4 h-4" />
-            Todas
-          </Button>
-          <Button
-            variant={filter === 'pending' ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('pending')}
-          >
-            <Circle className="w-4 h-4" />
-            Pendentes
-          </Button>
-          <Button
-            variant={filter === 'completed' ? 'primary' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('completed')}
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            Concluídas
-          </Button>
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { id: 'all', label: 'Todas', icon: Filter },
+            { id: 'pending', label: 'Pendentes', icon: Circle },
+            { id: 'completed', label: 'Concluídas', icon: CheckCircle2 },
+          ].map((item) => (
+            <Button
+              key={item.id}
+              variant={filter === item.id ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilter(item.id as typeof filter)}
+              className={filter === item.id ? 'shadow-lg shadow-primary/20' : ''}
+            >
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -251,10 +277,10 @@ const Operator = () => {
           const blockProgress = block.tasks.length > 0 ? (tracking.tasks.length / block.tasks.length) * 100 : 0;
 
           const statusStyles = {
-            current: 'border-primary ring-2 ring-primary/50 scale-105',
-            late: 'border-danger animate-pulseRed',
-            completed: 'border-success',
-            future: 'opacity-60',
+            current: 'border-primary ring-2 ring-primary/30 shadow-xl shadow-primary/10',
+            late: 'border-danger ring-2 ring-danger/30',
+            completed: 'border-success/50 bg-success/5',
+            future: 'opacity-70',
           };
 
           return (
@@ -264,21 +290,27 @@ const Operator = () => {
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-bold flex items-center gap-2">
+                  <h3 className="text-xl font-bold flex items-center gap-2 flex-wrap">
                     {block.label}
+                    {status === 'current' && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-lg border border-primary/20">
+                        <Zap className="w-3 h-3" />
+                        AGORA
+                      </span>
+                    )}
                     {status === 'late' && (
-                      <span className="px-2 py-1 bg-danger text-danger-foreground text-xs rounded-lg">
+                      <span className="px-2.5 py-1 bg-danger text-danger-foreground text-xs font-semibold rounded-lg animate-pulse">
                         ATRASADO
                       </span>
                     )}
                     {block.type === 'break' && (
-                      <span className="px-2 py-1 bg-warning text-warning-foreground text-xs rounded-lg">
+                      <span className="px-2.5 py-1 bg-warning/20 text-warning-foreground text-xs font-semibold rounded-lg border border-warning/30">
                         INTERVALO
                       </span>
                     )}
                   </h3>
                   {block.priority && (
-                    <span className={`text-xs ${block.priority === 'high' ? 'text-danger' : 'text-warning'}`}>
+                    <span className={`text-xs font-medium ${block.priority === 'high' ? 'text-danger' : 'text-warning'}`}>
                       Prioridade: {block.priority === 'high' ? 'Alta' : 'Média'}
                     </span>
                   )}
@@ -308,20 +340,20 @@ const Operator = () => {
                 {block.tasks.map((task, index) => (
                   <label
                     key={`${block.time}-${index}`}
-                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors group"
+                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
                   >
                     <input
                       type="checkbox"
                       checked={tracking.tasks.includes(index)}
                       onChange={() => handleTaskToggle(block.id, index)}
                       disabled={status === 'future'}
-                      className="mt-1 w-5 h-5 rounded border-2 border-primary text-primary focus:ring-2 focus:ring-primary"
+                      className="mt-1 w-5 h-5 rounded-md border-2 border-primary text-primary focus:ring-2 focus:ring-primary accent-primary"
                     />
                     <span className={`flex-1 ${tracking.tasks.includes(index) ? 'line-through opacity-60' : ''}`}>
                       {task}
                     </span>
                     {block.category && (
-                      <span className="text-xs px-2 py-1 bg-accent/20 text-accent-foreground rounded">
+                      <span className="text-xs px-2 py-1 bg-accent/20 text-accent-foreground rounded-lg">
                         {block.category}
                       </span>
                     )}
@@ -330,23 +362,23 @@ const Operator = () => {
               </div>
 
               {status !== 'future' && (
-                <div className="space-y-2">
+                <div className="space-y-3 pt-4 border-t border-border/50">
                   <label className="block text-sm font-medium">Relatório / Retorno</label>
                   <textarea
                     value={tracking.report}
                     onChange={(e) => handleReportChange(block.id, e.target.value)}
                     disabled={tracking.reportSent}
-                    className="w-full px-4 py-3 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none resize-none transition-all duration-200"
                     rows={3}
                     placeholder="Descreva as atividades realizadas..."
                   />
                    {tracking.reportSent ? (
-                    <div className="flex items-center gap-2 text-sm text-success">
+                    <div className="flex items-center gap-2 text-sm text-success font-medium">
                       <CheckCircle2 className="w-4 h-4" />
                       Relatório enviado às {new Date(tracking.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                    ) : (
-                    <Button size="sm" onClick={() => handleReportSend(block.id)}>
+                    <Button size="sm" className="shadow-lg shadow-primary/20">
                       Enviar Relatório
                     </Button>
                   )}
@@ -358,16 +390,23 @@ const Operator = () => {
       </div>
 
       {/* HUD */}
-      <div className="fixed bottom-0 left-0 right-0 glass border-t border-border p-4 z-30">
+      <div className="fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-2xl border-t border-border/50 p-4 z-30 shadow-2xl shadow-black/10">
         <div className="container mx-auto flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
-            <Clock className="w-5 h-5 text-primary" />
+            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
+              <Clock className="w-5 h-5 text-primary" />
+            </div>
             <div>
-              <div className="text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 {simulationMode ? 'Simulação' : 'Ao Vivo'}
-                {!simulationMode && <span className="inline-block w-2 h-2 bg-danger rounded-full ml-2 animate-pulseRed" />}
+                {!simulationMode && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                  </span>
+                )}
               </div>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-foreground font-mono">
                 {simulationMode ? `${simulatedTime}:00` : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
@@ -381,7 +420,7 @@ const Operator = () => {
                 max="19"
                 value={simulatedTime}
                 onChange={(e) => setSimulatedTime(Number(e.target.value))}
-                className="w-full"
+                className="w-full accent-primary"
               />
             </div>
           )}
@@ -398,12 +437,14 @@ const Operator = () => {
 
       {/* Focus Mode */}
       {focusMode && (
-        <div className="fixed bottom-24 right-4 glass-card p-6 w-64 z-40 animate-scaleIn">
+        <div className="fixed bottom-24 right-4 bg-card/95 backdrop-blur-2xl rounded-2xl border border-border/50 shadow-2xl p-6 w-72 z-40 animate-scaleIn">
           <h3 className="font-bold mb-4 flex items-center gap-2">
-            <Focus className="w-5 h-5 text-primary" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Focus className="w-5 h-5 text-primary" />
+            </div>
             Modo Foco
           </h3>
-          <div className="text-5xl font-bold text-center mb-4 text-gradient">
+          <div className="text-5xl font-bold text-center mb-4 font-mono bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             {formatTime(focusTime)}
           </div>
           <div className="flex gap-2">
