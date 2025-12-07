@@ -93,7 +93,7 @@ const RoutineEditor = () => {
         { id: `${selectedUser}-${timestamp}-3`, time: 9, label: '09:00 - 10:00', tasks: ['Atendimento'], priority: 'medium' as const, category: 'comunicação' as const },
         { id: `${selectedUser}-${timestamp}-4`, time: 10, label: '10:00 - 11:00', tasks: ['Processamento'], priority: 'medium' as const, category: 'sistema' as const },
         { id: `${selectedUser}-${timestamp}-5`, time: 11, label: '11:00 - 12:00', tasks: ['Documentação'], priority: 'medium' as const, category: 'organização' as const },
-        { id: `${selectedUser}-${timestamp}-6`, time: 12, label: '12:00 - 13:00', tasks: ['Intervalo'], priority: 'medium' as const, category: 'organização' as const },
+        { id: `${selectedUser}-${timestamp}-6`, time: 12, label: '12:00 - 13:00', tasks: ['Almoço'], priority: 'medium' as const, category: 'organização' as const },
         { id: `${selectedUser}-${timestamp}-7`, time: 13, label: '13:00 - 14:00', tasks: ['Revisão'], priority: 'medium' as const, category: 'monitoramento' as const },
         { id: `${selectedUser}-${timestamp}-8`, time: 14, label: '14:00 - 15:00', tasks: ['Atendimento'], priority: 'medium' as const, category: 'comunicação' as const },
         { id: `${selectedUser}-${timestamp}-9`, time: 15, label: '15:00 - 16:00', tasks: ['Processamento'], priority: 'medium' as const, category: 'sistema' as const },
@@ -147,8 +147,15 @@ const RoutineEditor = () => {
 
       {/* Schedule Blocks */}
       <div className="space-y-4">
-        {currentSchedule.map((block, blockIndex) => (
-          <GlassCard key={block.id} className="animate-slideUp">
+        {currentSchedule.map((block, blockIndex) => {
+          const isLunchBlock = block.time === 12 || (block as any).isLunchBreak || 
+            block.tasks.some(t => t.toLowerCase().includes('almoço') || t.toLowerCase().includes('intervalo'));
+          
+          return (
+          <GlassCard 
+            key={block.id} 
+            className={`animate-slideUp ${isLunchBlock ? 'relative overflow-hidden border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent' : ''}`}
+          >
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex gap-2 items-center mb-2">
@@ -247,7 +254,8 @@ const RoutineEditor = () => {
               Adicionar Tarefa
             </Button>
           </GlassCard>
-        ))}
+          );
+        })}
 
         <Button onClick={addBlock} className="w-full">
           <Plus className="w-4 h-4" />
