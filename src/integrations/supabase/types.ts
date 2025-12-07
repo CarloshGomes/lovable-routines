@@ -14,7 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          action: string
+          details: string | null
+          id: string
+          timestamp: string
+          username: string
+        }
+        Insert: {
+          action: string
+          details?: string | null
+          id?: string
+          timestamp?: string
+          username: string
+        }
+        Update: {
+          action?: string
+          details?: string | null
+          id?: string
+          timestamp?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_username_fkey"
+            columns: ["username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          pin: string | null
+          position: string | null
+          role: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          pin?: string | null
+          position?: string | null
+          role: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          pin?: string | null
+          position?: string | null
+          role?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      schedule_blocks: {
+        Row: {
+          block_id: string
+          color: string | null
+          created_at: string
+          duration: number
+          id: string
+          tasks: string[] | null
+          time: string
+          title: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          block_id: string
+          color?: string | null
+          created_at?: string
+          duration?: number
+          id?: string
+          tasks?: string[] | null
+          time: string
+          title: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          block_id?: string
+          color?: string | null
+          created_at?: string
+          duration?: number
+          id?: string
+          tasks?: string[] | null
+          time?: string
+          title?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_blocks_username_fkey"
+            columns: ["username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
+      supervisor_settings: {
+        Row: {
+          id: string
+          supervisor_pin: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          supervisor_pin?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          supervisor_pin?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tracking_data: {
+        Row: {
+          completed_tasks: string[] | null
+          created_at: string
+          id: string
+          notes: string | null
+          tracking_key: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          completed_tasks?: string[] | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tracking_key: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          completed_tasks?: string[] | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          tracking_key?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_data_username_fkey"
+            columns: ["username"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["username"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
