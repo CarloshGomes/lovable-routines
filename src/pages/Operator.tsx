@@ -275,6 +275,9 @@ const Operator = () => {
           const status = getBlockStatus(block.id, block.time);
           const tracking = userTracking[block.id] || { tasks: [], report: '', reportSent: false, timestamp: '' };
           const blockProgress = block.tasks.length > 0 ? (tracking.tasks.length / block.tasks.length) * 100 : 0;
+          
+          const isLunchBlock = block.time === 12 || 
+            block.tasks.some(t => t.toLowerCase().includes('almoço') || t.toLowerCase().includes('intervalo'));
 
           const statusStyles = {
             current: 'border-primary ring-2 ring-primary/30 shadow-xl shadow-primary/10',
@@ -282,11 +285,15 @@ const Operator = () => {
             completed: 'border-success/50 bg-success/5',
             future: 'opacity-70',
           };
+          
+          const lunchStyles = isLunchBlock 
+            ? 'border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent' 
+            : '';
 
           return (
             <GlassCard
               key={block.id}
-              className={`transition-all duration-300 ${statusStyles[status]} ${block.type === 'break' ? 'bg-warning/5' : ''}`}
+              className={`transition-all duration-300 ${statusStyles[status]} ${lunchStyles}`}
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -303,9 +310,9 @@ const Operator = () => {
                         ATRASADO
                       </span>
                     )}
-                    {block.type === 'break' && (
-                      <span className="px-2.5 py-1 bg-warning/20 text-warning-foreground text-xs font-semibold rounded-lg border border-warning/30">
-                        INTERVALO
+                    {isLunchBlock && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-lg border border-amber-500/30">
+                        🍽️ ALMOÇO
                       </span>
                     )}
                   </h3>
