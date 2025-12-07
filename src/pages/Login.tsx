@@ -10,13 +10,25 @@ import logoImage from '@/assets/logo.svg';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { userProfiles, supervisorPin, login, loginSupervisor, validateOperatorPin } = useApp();
+  const { userProfiles, supervisorPin, login, loginSupervisor, validateOperatorPin, isLoading } = useApp();
   const { theme, toggleTheme } = useTheme();
   const { addToast } = useToast();
   const [showPinModal, setShowPinModal] = useState(false);
   const [showOperatorPinModal, setShowOperatorPinModal] = useState(false);
   const [selectedOperator, setSelectedOperator] = useState<string | null>(null);
   const [pin, setPin] = useState('');
+
+  // Show loading state while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground animate-pulse">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleOperatorClick = (username: string) => {
     const profile = userProfiles[username];

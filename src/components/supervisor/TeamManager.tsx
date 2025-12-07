@@ -24,14 +24,16 @@ const TeamManager = () => {
     role: '',
     color: 'blue',
     avatar: '👨‍💼',
-    email: '',
     pin: '',
   });
 
   const handleEdit = (username: string) => {
     const profile = userProfiles[username];
     setFormData({
-      ...profile,
+      name: profile.name,
+      role: profile.role,
+      color: profile.color,
+      avatar: profile.avatar,
       pin: profile.pin || '',
     });
     setEditingUsername(username);
@@ -45,7 +47,6 @@ const TeamManager = () => {
       role: '',
       color: 'blue',
       avatar: '👨‍💼',
-      email: '',
       pin: '',
     });
     setEditingUsername(null);
@@ -71,7 +72,6 @@ const TeamManager = () => {
       role: formData.role,
       color: formData.color,
       avatar: formData.avatar,
-      email: formData.email,
       pin: formData.pin || undefined,
     };
 
@@ -117,7 +117,6 @@ const TeamManager = () => {
               <div className="flex-1">
                 <h3 className="text-lg font-bold">{profile.name}</h3>
                 <p className="text-sm text-muted-foreground">{profile.role}</p>
-                <p className="text-xs text-muted-foreground mt-1">{profile.email}</p>
                 {profile.pin && (
                   <span className="inline-flex items-center gap-1 text-xs text-primary mt-1">
                     <Shield className="w-3 h-3" /> PIN ativo
@@ -177,17 +176,6 @@ const TeamManager = () => {
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               className="w-full px-4 py-2 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none"
               placeholder="Ex: Operador de Sistemas"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none"
-              placeholder="email@empresa.com"
             />
           </div>
 
