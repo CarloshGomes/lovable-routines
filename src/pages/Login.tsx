@@ -119,20 +119,19 @@ const Login = () => {
 
           {/* Title */}
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-              <Activity className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Sistema Operacional</span>
-            </div>
-            
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              <span className="text-foreground">Sistema de</span>{' '}
               <span className="relative">
                 <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                  Rotinas
+                  Rondon Controle
                 </span>
                 <Sparkles className="absolute -top-2 -right-6 w-5 h-5 text-primary animate-pulse" />
               </span>
             </h1>
+            
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+              <Activity className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">Sistema de Gestão Operacional</span>
+            </div>
             
             <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto">
               Gestão operacional inteligente para sua equipe
@@ -254,7 +253,7 @@ const Login = () => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground/60">
-          <p>Sistema de Gestão Operacional v4.0</p>
+          <p>Rondon Controle v4.0</p>
         </div>
       </div>
 
