@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/Button';
 import { 
-  LayoutDashboard, Users, Calendar, Settings, LogOut, ShieldCheck, Activity
+  LayoutDashboard, Users, Calendar, Settings, LogOut, ShieldCheck, Activity, Sun, Moon
 } from 'lucide-react';
 import Dashboard from '@/components/supervisor/Dashboard';
 import TeamManager from '@/components/supervisor/TeamManager';
@@ -16,6 +17,7 @@ type Tab = 'dashboard' | 'team' | 'routines' | 'settings';
 const Supervisor = () => {
   const navigate = useNavigate();
   const { logout } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   const tabs = [
@@ -63,19 +65,29 @@ const Supervisor = () => {
               </div>
             </div>
 
-            {/* Right - Logout */}
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                logout();
-                navigate('/');
-              }}
-              className="shadow-lg shadow-danger/20"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sair</span>
-            </Button>
+            {/* Right - Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="hover:bg-primary/10"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => {
+                  logout();
+                  navigate('/');
+                }}
+                className="shadow-lg shadow-danger/20"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sair</span>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
