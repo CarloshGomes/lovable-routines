@@ -2,24 +2,30 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/Button';
 import { GlassCard } from '@/components/GlassCard';
 import { Greeting } from '@/components/Greeting';
 import { 
-  LogOut, HelpCircle, Focus, Clock, Play, Pause, RotateCcw,
+  LogOut, HelpCircle, Clock, Sun, Moon,
   CheckCircle2, Circle, Filter, Zap, TrendingUp
 } from 'lucide-react';
 import logoImage from '@/assets/logo.svg';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const Operator = () => {
   const navigate = useNavigate();
   const { currentUser, userProfiles, schedules, trackingData, updateTracking, logout } = useApp();
   const { addToast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  const [focusMode, setFocusMode] = useState(false);
-  const [focusTime, setFocusTime] = useState(25 * 60);
-  const [focusRunning, setFocusRunning] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [simulationMode, setSimulationMode] = useState(false);
   const [simulatedTime, setSimulatedTime] = useState(7);
 
@@ -54,18 +60,6 @@ const Operator = () => {
     return () => clearInterval(interval);
   }, [currentUser]);
 
-  useEffect(() => {
-    if (focusRunning && focusTime > 0) {
-      const timer = setInterval(() => {
-        setFocusTime((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    } else if (focusTime === 0) {
-      addToast('Sessão Pomodoro concluída!', 'success');
-      setFocusRunning(false);
-      setFocusTime(25 * 60);
-    }
-  }, [focusRunning, focusTime, addToast]);
 
   if (!currentUser) return null;
 
@@ -155,11 +149,6 @@ const Operator = () => {
     return 'future';
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
 
   return (
     <div className="min-h-screen pb-32 bg-background">
@@ -197,13 +186,16 @@ const Operator = () => {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setFocusMode(!focusMode)}
-                className={focusMode ? 'bg-primary/10 text-primary' : ''}
+                onClick={toggleTheme}
+                className="hover:bg-primary/10"
               >
-                <Focus className="w-4 h-4" />
-                <span className="hidden sm:inline">Foco</span>
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowHelp(true)}
+              >
                 <HelpCircle className="w-4 h-4" />
                 <span className="hidden sm:inline">Ajuda</span>
               </Button>
@@ -442,37 +434,60 @@ const Operator = () => {
         </div>
       </div>
 
-      {/* Focus Mode */}
-      {focusMode && (
-        <div className="fixed bottom-24 right-4 bg-card/95 backdrop-blur-2xl rounded-2xl border border-border/50 shadow-2xl p-6 w-72 z-40 animate-scaleIn">
-          <h3 className="font-bold mb-4 flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Focus className="w-5 h-5 text-primary" />
+      {/* Help Dialog */}
+      <Dialog open={showHelp} onOpenChange={setShowHelp}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-primary" />
+              Central de Ajuda
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                  Completar Tarefas
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Clique na caixa de seleção ao lado de cada tarefa para marcá-la como concluída.
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-primary" />
+                  Filtros
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Use os botões de filtro para ver todas as tarefas, apenas pendentes ou apenas concluídas.
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-warning" />
+                  Relatórios
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Após concluir as tarefas de um bloco, preencha o campo de relatório e clique em "Enviar Relatório".
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-accent" />
+                  Status dos Blocos
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  <strong>AGORA:</strong> Bloco atual • <strong>ATRASADO:</strong> Bloco passado com tarefas pendentes • <strong>Opaco:</strong> Blocos futuros
+                </p>
+              </div>
             </div>
-            Modo Foco
-          </h3>
-          <div className="text-5xl font-bold text-center mb-4 font-mono bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            {formatTime(focusTime)}
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant={focusRunning ? 'warning' : 'success'}
-              size="sm"
-              className="flex-1"
-              onClick={() => setFocusRunning(!focusRunning)}
-            >
-              {focusRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setFocusTime(25 * 60); setFocusRunning(false); }}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
