@@ -8,10 +8,18 @@ import {
   Clock, AlertTriangle, User, Users, Calendar, List
 } from 'lucide-react';
 import CalendarView from './CalendarView';
+import { CompletionRateModal } from './modals/CompletionRateModal';
+import { TasksCompletedModal } from './modals/TasksCompletedModal';
+import { ReportsModal } from './modals/ReportsModal';
+import { ActiveOperatorsModal } from './modals/ActiveOperatorsModal';
 
 const Dashboard = () => {
   const { userProfiles, schedules, trackingData, activityLog, activeUsers } = useApp();
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [completionModalOpen, setCompletionModalOpen] = useState(false);
+  const [tasksModalOpen, setTasksModalOpen] = useState(false);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
+  const [operatorsModalOpen, setOperatorsModalOpen] = useState(false);
 
   // Filter tracking data to show only today's data in list view
   const today = new Date().toISOString().split('T')[0];
@@ -93,26 +101,36 @@ const Dashboard = () => {
           icon={TrendingUp}
           trend={5}
           color="text-primary"
+          onClick={() => setCompletionModalOpen(true)}
         />
         <StatCard
           title="Tarefas Concluídas"
           value={`${completedTasks}/${totalTasks}`}
           icon={CheckCircle2}
           color="text-success"
+          onClick={() => setTasksModalOpen(true)}
         />
         <StatCard
           title="Relatórios Enviados"
           value={totalReports}
           icon={FileText}
           color="text-accent"
+          onClick={() => setReportsModalOpen(true)}
         />
         <StatCard
           title="Operadores Ativos"
           value={totalUsers}
           icon={UsersIcon}
           color="text-warning"
+          onClick={() => setOperatorsModalOpen(true)}
         />
       </div>
+
+      {/* Modals */}
+      <CompletionRateModal open={completionModalOpen} onOpenChange={setCompletionModalOpen} />
+      <TasksCompletedModal open={tasksModalOpen} onOpenChange={setTasksModalOpen} />
+      <ReportsModal open={reportsModalOpen} onOpenChange={setReportsModalOpen} />
+      <ActiveOperatorsModal open={operatorsModalOpen} onOpenChange={setOperatorsModalOpen} />
 
       {/* Late Alert */}
       {lateOperators.length > 0 && (

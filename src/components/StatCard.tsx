@@ -7,9 +7,10 @@ interface StatCardProps {
   icon: LucideIcon;
   trend?: number;
   color?: string;
+  onClick?: () => void;
 }
 
-export const StatCard = ({ title, value, icon: Icon, trend, color = 'text-primary' }: StatCardProps) => {
+export const StatCard = ({ title, value, icon: Icon, trend, color = 'text-primary', onClick }: StatCardProps) => {
   const getColorClasses = () => {
     switch (color) {
       case 'text-primary':
@@ -58,7 +59,10 @@ export const StatCard = ({ title, value, icon: Icon, trend, color = 'text-primar
   const colorClasses = getColorClasses();
 
   return (
-    <GlassCard className={`animate-slideUp group hover:scale-[1.02] transition-all duration-300 ${colorClasses.glow} relative overflow-hidden`}>
+    <GlassCard 
+      className={`animate-slideUp group hover:scale-[1.02] transition-all duration-300 ${colorClasses.glow} relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+    >
       {/* Gradient overlay on hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-accent/0 group-hover:from-primary/[0.03] group-hover:to-accent/[0.03] transition-all duration-500" />
       
