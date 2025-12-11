@@ -5,7 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
-import { Moon, Sun, ShieldCheck, UserCircle2, ArrowRight, Lock, Fingerprint, Sparkles, Activity } from 'lucide-react';
+import { Moon, Sun, ShieldCheck, UserCircle2, ArrowRight, Lock, Fingerprint, Sparkles, Activity, Eye, EyeOff } from 'lucide-react';
 import logoImage from '@/assets/logo.svg';
 
 const Login = () => {
@@ -17,6 +17,8 @@ const Login = () => {
   const [showOperatorPinModal, setShowOperatorPinModal] = useState(false);
   const [selectedOperator, setSelectedOperator] = useState<string | null>(null);
   const [pin, setPin] = useState('');
+  const [showOperatorPin, setShowOperatorPin] = useState(false);
+  const [showSupervisorPin, setShowSupervisorPin] = useState(false);
 
   // Show loading state while data is being fetched
   if (isLoading) {
@@ -283,16 +285,25 @@ const Login = () => {
           
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">Digite seu PIN</label>
-            <input
-              type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleOperatorPinSubmit()}
-              className="w-full px-5 py-4 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none text-center text-2xl tracking-[0.5em] font-mono transition-all duration-200"
-              placeholder="••••"
-              maxLength={10}
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                type={showOperatorPin ? "text" : "password"}
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleOperatorPinSubmit()}
+                className="w-full px-5 py-4 pr-14 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none text-center text-2xl tracking-[0.5em] font-mono transition-all duration-200"
+                placeholder="••••"
+                maxLength={10}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowOperatorPin(!showOperatorPin)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
+              >
+                {showOperatorPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           
           <div className="flex gap-3">
@@ -327,16 +338,25 @@ const Login = () => {
           
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">PIN de Acesso</label>
-            <input
-              type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSupervisorAccess()}
-              className="w-full px-5 py-4 rounded-xl bg-muted/50 border border-border focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-center text-2xl tracking-[0.5em] font-mono transition-all duration-200"
-              placeholder="••••"
-              maxLength={10}
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                type={showSupervisorPin ? "text" : "password"}
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSupervisorAccess()}
+                className="w-full px-5 py-4 pr-14 rounded-xl bg-muted/50 border border-border focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-center text-2xl tracking-[0.5em] font-mono transition-all duration-200"
+                placeholder="••••"
+                maxLength={10}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowSupervisorPin(!showSupervisorPin)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
+              >
+                {showSupervisorPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           
           <div className="flex gap-3">
