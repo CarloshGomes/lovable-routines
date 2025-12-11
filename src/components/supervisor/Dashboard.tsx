@@ -1,17 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { StatCard } from '@/components/StatCard';
 import { GlassCard } from '@/components/GlassCard';
 import { Button } from '@/components/Button';
 import { 
   TrendingUp, CheckCircle2, FileText, Users as UsersIcon,
-  Clock, AlertTriangle, User, Users, Calendar, List
+  Clock, AlertTriangle, User, Users, Calendar, List, Bell
 } from 'lucide-react';
 import CalendarView from './CalendarView';
 import { CompletionRateModal } from './modals/CompletionRateModal';
 import { TasksCompletedModal } from './modals/TasksCompletedModal';
 import { ReportsModal } from './modals/ReportsModal';
 import { ActiveOperatorsModal } from './modals/ActiveOperatorsModal';
+import { toast } from 'sonner';
+
+interface LateNotification {
+  username: string;
+  operatorName: string;
+  blockLabel: string;
+  notifiedAt: number;
+}
 
 const Dashboard = () => {
   const { userProfiles, schedules, trackingData, activityLog, activeUsers } = useApp();
@@ -20,6 +28,8 @@ const Dashboard = () => {
   const [tasksModalOpen, setTasksModalOpen] = useState(false);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const [operatorsModalOpen, setOperatorsModalOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const notifiedRef = useRef<Set<string>>(new Set());
 
   // Filter tracking data to show only today's data in list view
   const today = new Date().toISOString().split('T')[0];
@@ -57,16 +67,52 @@ const Dashboard = () => {
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const currentHour = new Date().getHours();
-  const lateOperators = Object.entries(schedules).filter(([username, schedule]) => {
+  
+  // Detect late operators and their specific late blocks
+  const lateOperatorsData: { username: string; lateBlocks: typeof schedules[string] }[] = [];
+  
+  Object.entries(schedules).forEach(([username, schedule]) => {
     const tracking = todayTrackingData[username] || {};
-    return schedule.some((block) => {
+    const lateBlocks = schedule.filter((block) => {
       if (block.time < currentHour) {
         const blockTracking = tracking[block.id];
         return !blockTracking || blockTracking.tasks.length < block.tasks.length;
       }
       return false;
     });
+    
+    if (lateBlocks.length > 0) {
+      lateOperatorsData.push({ username, lateBlocks });
+    }
   });
+
+  const lateOperators = lateOperatorsData.map(d => [d.username, schedules[d.username]] as [string, typeof schedules[string]]);
+
+  // Automatic notifications for late tasks
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+
+    lateOperatorsData.forEach(({ username, lateBlocks }) => {
+      lateBlocks.forEach((block) => {
+        const notificationKey = `${today}-${username}-${block.id}`;
+        
+        if (!notifiedRef.current.has(notificationKey)) {
+          notifiedRef.current.add(notificationKey);
+          
+          const operatorName = userProfiles[username]?.name || username;
+          
+          toast.error(
+            `Tarefa Atrasada: ${operatorName}`,
+            {
+              description: `${block.label} não foi concluído no horário previsto`,
+              duration: 8000,
+              icon: <AlertTriangle className="w-5 h-5 text-danger" />,
+            }
+          );
+        }
+      });
+    });
+  }, [lateOperatorsData, notificationsEnabled, today, userProfiles]);
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -74,6 +120,17 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Painel de Controle</h2>
         <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              setNotificationsEnabled(!notificationsEnabled);
+              toast.info(notificationsEnabled ? 'Notificações desativadas' : 'Notificações ativadas');
+            }}
+            variant={notificationsEnabled ? 'primary' : 'outline'}
+            className="flex items-center gap-2"
+            title={notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'}
+          >
+            <Bell className={`w-4 h-4 ${notificationsEnabled ? '' : 'opacity-50'}`} />
+          </Button>
           <Button
             onClick={() => setViewMode('list')}
             variant={viewMode === 'list' ? 'primary' : 'outline'}
