@@ -7,7 +7,7 @@ import { Modal } from '@/components/Modal';
 import { Plus, Edit2, Trash2, User, Shield, Eye, EyeOff } from 'lucide-react';
 
 const colors = ['blue', 'purple', 'green', 'indigo', 'red', 'yellow', 'pink', 'cyan'];
-const avatars = ['👨‍💼', '👩‍💼', '👨‍💻', '👩‍💻', '👨‍🔧', '👩‍🔧', '👨‍🎨', '👩‍🎨'];
+const avatars = ['👨‍💼', '👩‍💼', '👨‍💻', '👩‍💻', '🕵️‍♀️', '🕵️', '🤵‍♀️', '🤵‍♂️'];
 
 const TeamManager = () => {
   const { userProfiles, updateProfile, deleteProfile } = useApp();
