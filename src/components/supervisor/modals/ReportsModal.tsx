@@ -1,12 +1,18 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
-import { FileText, Download, FileSpreadsheet, FileType } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
+import { format, subDays, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface ReportsModalProps {
   open: boolean;
@@ -22,32 +28,85 @@ interface ReportData {
   completedTasks: string[];
   totalTasks: string[];
   timestamp: string;
+  date: string;
 }
+
+type DatePreset = 'today' | 'week' | 'month' | 'custom';
 
 export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
   const { userProfiles, schedules, trackingData } = useApp();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  
+  const [datePreset, setDatePreset] = useState<DatePreset>('today');
+  const [startDate, setStartDate] = useState<Date>(today);
+  const [endDate, setEndDate] = useState<Date>(today);
 
-  const reports: ReportData[] = [];
+  const getDateRange = (): { start: Date; end: Date } => {
+    switch (datePreset) {
+      case 'today':
+        return { start: today, end: today };
+      case 'week':
+        return { start: subDays(today, 7), end: today };
+      case 'month':
+        return { start: subDays(today, 30), end: today };
+      case 'custom':
+        return { start: startDate, end: endDate };
+      default:
+        return { start: today, end: today };
+    }
+  };
 
-  Object.entries(userProfiles).forEach(([username, profile]) => {
-    const schedule = schedules[username] || [];
-    schedule.forEach((block) => {
-      const tracking = trackingData[username]?.[`${today}-${block.id}`];
-      if (tracking?.reportSent && tracking?.report) {
-        reports.push({
-          operatorName: profile.name,
-          operatorRole: profile.role,
-          blockLabel: block.label,
-          blockTime: block.time,
-          report: tracking.report,
-          completedTasks: block.tasks.filter((_, idx) => tracking.tasks.includes(idx)),
-          totalTasks: block.tasks,
-          timestamp: new Date().toLocaleString('pt-BR'),
-        });
-      }
+  const dateRange = getDateRange();
+
+  const getAllReports = (): ReportData[] => {
+    const reports: ReportData[] = [];
+
+    Object.entries(userProfiles).forEach(([username, profile]) => {
+      const schedule = schedules[username] || [];
+      const userTracking = trackingData[username] || {};
+
+      Object.entries(userTracking).forEach(([key, tracking]) => {
+        const dateMatch = key.match(/^(\d{4}-\d{2}-\d{2})-/);
+        if (!dateMatch) return;
+
+        const reportDate = dateMatch[1];
+        const reportDateObj = parseISO(reportDate);
+
+        if (!isWithinInterval(reportDateObj, { 
+          start: startOfDay(dateRange.start), 
+          end: endOfDay(dateRange.end) 
+        })) return;
+
+        if (tracking?.reportSent && tracking?.report) {
+          const blockId = key.replace(`${reportDate}-`, '');
+          const block = schedule.find(b => b.id === blockId);
+
+          reports.push({
+            operatorName: profile.name,
+            operatorRole: profile.role,
+            blockLabel: block?.label || 'Bloco',
+            blockTime: block?.time || 0,
+            report: tracking.report,
+            completedTasks: block?.tasks.filter((_, idx) => tracking.tasks.includes(idx)) || [],
+            totalTasks: block?.tasks || [],
+            timestamp: new Date(reportDate).toLocaleString('pt-BR'),
+            date: reportDate,
+          });
+        }
+      });
     });
-  });
+
+    return reports.sort((a, b) => b.date.localeCompare(a.date));
+  };
+
+  const reports = getAllReports();
+
+  const getDateRangeLabel = () => {
+    if (datePreset === 'today') return format(today, "dd 'de' MMMM", { locale: ptBR });
+    if (datePreset === 'week') return `Últimos 7 dias`;
+    if (datePreset === 'month') return `Últimos 30 dias`;
+    return `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`;
+  };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
@@ -55,11 +114,11 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
     let yPosition = 20;
 
     doc.setFontSize(18);
-    doc.text('Relatórios do Dia', pageWidth / 2, yPosition, { align: 'center' });
+    doc.text('Relatórios', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 10;
     
     doc.setFontSize(12);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, yPosition, { align: 'center' });
+    doc.text(`Período: ${getDateRangeLabel()}`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 15;
 
     reports.forEach((report, index) => {
@@ -75,6 +134,8 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
+      doc.text(`Data: ${format(parseISO(report.date), 'dd/MM/yyyy')}`, 14, yPosition);
+      yPosition += 6;
       doc.text(`Cargo: ${report.operatorRole}`, 14, yPosition);
       yPosition += 6;
 
@@ -95,12 +156,17 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
       yPosition += 10;
     });
 
-    doc.save(`relatorios-${today}.pdf`);
+    const filename = datePreset === 'today' 
+      ? `relatorios-${format(today, 'yyyy-MM-dd')}.pdf`
+      : `relatorios-${format(dateRange.start, 'yyyy-MM-dd')}_${format(dateRange.end, 'yyyy-MM-dd')}.pdf`;
+    
+    doc.save(filename);
     toast.success('PDF exportado com sucesso!');
   };
 
   const exportToExcel = () => {
     const data = reports.map(report => ({
+      'Data': format(parseISO(report.date), 'dd/MM/yyyy'),
       'Operador': report.operatorName,
       'Cargo': report.operatorRole,
       'Bloco': report.blockLabel,
@@ -115,6 +181,7 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
     XLSX.utils.book_append_sheet(wb, ws, 'Relatórios');
 
     ws['!cols'] = [
+      { wch: 12 },
       { wch: 20 },
       { wch: 15 },
       { wch: 15 },
@@ -124,19 +191,23 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
       { wch: 50 },
     ];
 
-    XLSX.writeFile(wb, `relatorios-${today}.xlsx`);
+    const filename = datePreset === 'today' 
+      ? `relatorios-${format(today, 'yyyy-MM-dd')}.xlsx`
+      : `relatorios-${format(dateRange.start, 'yyyy-MM-dd')}_${format(dateRange.end, 'yyyy-MM-dd')}.xlsx`;
+
+    XLSX.writeFile(wb, filename);
     toast.success('Excel exportado com sucesso!');
   };
 
   const exportToWord = async () => {
     const children: (Paragraph)[] = [
       new Paragraph({
-        text: 'Relatórios do Dia',
+        text: 'Relatórios',
         heading: HeadingLevel.TITLE,
         alignment: 'center' as const,
       }),
       new Paragraph({
-        text: `Data: ${new Date().toLocaleDateString('pt-BR')}`,
+        text: `Período: ${getDateRangeLabel()}`,
         alignment: 'center' as const,
         spacing: { after: 400 },
       }),
@@ -148,6 +219,12 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
           text: `${index + 1}. ${report.operatorName} - ${report.blockLabel}`,
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 400 },
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Data: ', bold: true }),
+            new TextRun(format(parseISO(report.date), 'dd/MM/yyyy')),
+          ],
         }),
         new Paragraph({
           children: [
@@ -181,7 +258,11 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, `relatorios-${today}.docx`);
+    const filename = datePreset === 'today' 
+      ? `relatorios-${format(today, 'yyyy-MM-dd')}.docx`
+      : `relatorios-${format(dateRange.start, 'yyyy-MM-dd')}_${format(dateRange.end, 'yyyy-MM-dd')}.docx`;
+    
+    saveAs(blob, filename);
     toast.success('Word exportado com sucesso!');
   };
 
@@ -196,6 +277,75 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Date Filter */}
+          <div className="p-4 rounded-xl bg-muted/30 border border-border space-y-3">
+            <span className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Filtrar por Período:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={datePreset === 'today' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDatePreset('today')}
+              >
+                Hoje
+              </Button>
+              <Button
+                variant={datePreset === 'week' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDatePreset('week')}
+              >
+                Últimos 7 dias
+              </Button>
+              <Button
+                variant={datePreset === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDatePreset('month')}
+              >
+                Últimos 30 dias
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={datePreset === 'custom' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDatePreset('custom')}
+                  >
+                    Personalizado
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <div className="p-3 space-y-3">
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">Data Inicial</span>
+                      <CalendarComponent
+                        mode="single"
+                        selected={startDate}
+                        onSelect={(date) => date && setStartDate(date)}
+                        disabled={(date) => date > today}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">Data Final</span>
+                      <CalendarComponent
+                        mode="single"
+                        selected={endDate}
+                        onSelect={(date) => date && setEndDate(date)}
+                        disabled={(date) => date > today || date < startDate}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Período selecionado: <span className="font-medium text-foreground">{getDateRangeLabel()}</span>
+            </p>
+          </div>
+
           {/* Export Buttons */}
           <div className="flex flex-wrap gap-2 p-4 rounded-xl bg-muted/30 border border-border">
             <span className="text-sm font-medium w-full mb-2">Exportar Relatórios:</span>
@@ -242,7 +392,12 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
                       <span className="font-semibold">{report.operatorName}</span>
                       <span className="text-xs text-muted-foreground">({report.operatorRole})</span>
                     </div>
-                    <span className="text-sm font-medium text-primary">{report.blockLabel}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {format(parseISO(report.date), "dd/MM/yyyy")}
+                      </span>
+                      <span className="text-sm font-medium text-primary">{report.blockLabel}</span>
+                    </div>
                   </div>
                   <div className="p-3 rounded-lg bg-background/50 border border-border">
                     <p className="text-sm">{report.report}</p>
@@ -256,7 +411,7 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Nenhum relatório enviado hoje</p>
+              <p>Nenhum relatório encontrado para o período selecionado</p>
             </div>
           )}
         </div>
