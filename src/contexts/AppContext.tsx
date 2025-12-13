@@ -27,6 +27,8 @@ export interface TrackingData {
   timestamp: string;
 }
 
+export type ScheduleSnapshots = Record<string, Record<string, ScheduleBlock[]>>;
+
 export interface ActivityLog {
   id: number;
   type: 'login' | 'report_sent' | 'schedule_edit' | 'profile_edit';
@@ -41,6 +43,7 @@ interface AppContextType {
   isSupervisor: boolean;
   userProfiles: Record<string, UserProfile>;
   schedules: Record<string, ScheduleBlock[]>;
+  scheduleSnapshots: ScheduleSnapshots;
   trackingData: Record<string, Record<string, TrackingData>>;
   activityLog: ActivityLog[];
   supervisorPin: string;
@@ -52,7 +55,7 @@ interface AppContextType {
   logout: () => void;
   updateProfile: (username: string, profile: UserProfile) => void;
   deleteProfile: (username: string) => void;
-  updateSchedule: (username: string, schedule: ScheduleBlock[]) => void;
+  updateSchedule: (username: string, schedule: ScheduleBlock[], options?: { preserveDays?: number }) => void;
   updateTracking: (username: string, blockId: string, data: TrackingData) => void;
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   updateSupervisorPin: (newPin: string) => void;
@@ -70,6 +73,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfile>>({});
   const [schedules, setSchedules] = useState<Record<string, ScheduleBlock[]>>({});
   const [trackingData, setTrackingData] = useState<Record<string, Record<string, TrackingData>>>({});
+  const [scheduleSnapshots, setScheduleSnapshots] = useState<ScheduleSnapshots>({});
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([]);
   const [supervisorPin, setSupervisorPin] = useState('1234');
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +125,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             category: 'sistema',
           });
         });
+        // Garantir ordem consistente por horário para evitar reposicionamento
+        Object.keys(schedulesMap).forEach((username) => {
+          schedulesMap[username].sort((a, b) => a.time - b.time);
+        });
+
+        // Garantir ordem consistente por horário para evitar reposicionamento
+        Object.keys(schedulesMap).forEach((username) => {
+          schedulesMap[username].sort((a, b) => a.time - b.time);
+        });
+
         setSchedules(schedulesMap);
+      }
+
+      // Fetch schedule snapshots
+      const { data: snapshotsData } = await supabase
+        .from('schedule_snapshots')
+        .select('*');
+
+      if (snapshotsData) {
+        const snapshotsMap: ScheduleSnapshots = {};
+        snapshotsData.forEach(s => {
+          if (!snapshotsMap[s.username]) snapshotsMap[s.username] = {};
+          const dateKey = s.snapshot_date; // YYYY-MM-DD
+          snapshotsMap[s.username][dateKey] = s.blocks || [];
+        });
+        setScheduleSnapshots(snapshotsMap);
       }
 
       // Fetch tracking data
@@ -319,7 +348,63 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     fetchData();
   };
 
-  const updateSchedule = async (username: string, schedule: ScheduleBlock[]) => {
+  const updateSchedule = async (username: string, schedule: ScheduleBlock[], options?: { preserveDays?: number }) => {
+    // If preserveDays option is provided (>0), preserve the existing template for the last N days
+    const preserveDays = options?.preserveDays ?? 0;
+    if (preserveDays > 0) {
+      try {
+        const { data: existingBlocks } = await supabase
+          .from('schedule_blocks')
+          .select('*')
+          .eq('username', username);
+
+        if (existingBlocks && existingBlocks.length > 0) {
+          const oldSchedule: ScheduleBlock[] = existingBlocks.map((s: any) => {
+            const timeMatch = (s.time || '').toString().match(/^(\d{1,2})/);
+            const timeNum = timeMatch ? parseInt(timeMatch[1]) : 7;
+            return {
+              id: s.block_id,
+              time: timeNum,
+              label: s.time,
+              tasks: s.tasks || [],
+              priority: s.color === '#EF4444' ? 'high' : 'medium',
+              category: 'sistema',
+            } as ScheduleBlock;
+          });
+
+          // For each day in the range [1..preserveDays], upsert snapshot if missing
+          for (let i = 1; i <= preserveDays; i++) {
+            const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const { data: existingSnapshot } = await supabase
+              .from('schedule_snapshots')
+              .select('id')
+              .eq('username', username)
+              .eq('snapshot_date', date)
+              .maybeSingle();
+
+            if (!existingSnapshot) {
+              await supabase.from('schedule_snapshots').insert({
+                username,
+                snapshot_date: date,
+                blocks: oldSchedule,
+              });
+
+              // Update local snapshots state
+              setScheduleSnapshots(prev => ({
+                ...prev,
+                [username]: {
+                  ...(prev[username] || {}),
+                  [date]: oldSchedule,
+                }
+              }));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Erro ao preservar snapshots anteriores:', err);
+      }
+    }
+
     // Delete existing schedules for user
     await supabase
       .from('schedule_blocks')
@@ -339,6 +424,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }));
 
       await supabase.from('schedule_blocks').insert(schedulesToInsert);
+    }
+
+    // Also upsert a snapshot for today's date so historical views are preserved
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await supabase.from('schedule_snapshots').upsert({
+        username,
+        snapshot_date: today,
+        blocks: schedule,
+      }, { onConflict: ['username', 'snapshot_date'] });
+
+      // Update local snapshots state
+      setScheduleSnapshots(prev => ({
+        ...prev,
+        [username]: {
+          ...(prev[username] || {}),
+          [today]: schedule,
+        }
+      }));
+    } catch (err) {
+      console.warn('Erro ao salvar snapshot de rotina:', err);
     }
 
     await supabase.from('activity_logs').insert({
@@ -460,6 +566,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         userProfiles,
         schedules,
         trackingData,
+        scheduleSnapshots,
         activityLog,
         supervisorPin,
         activeUsers,

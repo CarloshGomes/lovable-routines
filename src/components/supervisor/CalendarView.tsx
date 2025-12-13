@@ -12,7 +12,7 @@ import { ptBR } from 'date-fns/locale';
 interface CalendarViewProps {}
 
 const CalendarView = ({}: CalendarViewProps) => {
-  const { userProfiles, schedules, trackingData, activeUsers } = useApp();
+  const { userProfiles, schedules, trackingData, activeUsers, scheduleSnapshots } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -49,12 +49,14 @@ const CalendarView = ({}: CalendarViewProps) => {
       isActive: boolean;
     }> = [];
 
-    // For each operator, get their complete schedule
+    // For each operator, get their complete schedule (snapshot for the date if available)
     Object.entries(userProfiles).forEach(([username, profile]) => {
-      const schedule = schedules[username] || [];
+      const snapshotsForUser = scheduleSnapshots[username] || {};
+      const dateKey = format(date, 'yyyy-MM-dd');
+      const schedule = snapshotsForUser[dateKey] || schedules[username] || [];
       const userTracking = trackingData[username] || {};
-      
-      schedule.forEach((block) => {
+
+      schedule.forEach((block: any) => {
         // Check if there's tracking data for this block on this date
         const trackingKey = `${dateKey}-${block.id}`;
         const tracking = userTracking[trackingKey] || null;

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { ScheduleBlock } from '@/contexts/AppContext';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/Button';
@@ -11,10 +12,17 @@ const RoutineEditor = () => {
   const [selectedUser, setSelectedUser] = useState(Object.keys(userProfiles)[0] || '');
 
   const currentSchedule = schedules[selectedUser] || [];
+  const [localSchedule, setLocalSchedule] = useState<ScheduleBlock[]>(currentSchedule);
+  const [preserveEnabled, setPreserveEnabled] = useState(false);
+  const [preserveDays, setPreserveDays] = useState(1);
+
+  useEffect(() => {
+    setLocalSchedule(schedules[selectedUser] || []);
+  }, [selectedUser, schedules]);
 
   const addBlock = () => {
     // Encontrar o próximo horário disponível
-    const existingTimes = currentSchedule.map(b => b.time);
+    const existingTimes = localSchedule.map(b => b.time);
     let nextTime = 7;
     while (existingTimes.includes(nextTime) && nextTime < 19) {
       nextTime++;
@@ -28,32 +36,33 @@ const RoutineEditor = () => {
       priority: 'medium' as const,
       category: 'sistema' as const,
     };
-    updateSchedule(selectedUser, [...currentSchedule, newBlock]);
+    const updated = [...localSchedule, newBlock];
+    setLocalSchedule(updated);
     addToast('Bloco adicionado', 'success');
   };
 
   const removeBlock = (index: number) => {
-    const newSchedule = currentSchedule.filter((_, i) => i !== index);
-    updateSchedule(selectedUser, newSchedule);
+    const newSchedule = localSchedule.filter((_, i) => i !== index);
+    setLocalSchedule(newSchedule);
     addToast('Bloco removido', 'success');
   };
 
   const addTask = (blockIndex: number) => {
-    const newSchedule = [...currentSchedule];
+    const newSchedule = [...localSchedule];
     newSchedule[blockIndex].tasks.push('Nova tarefa');
-    updateSchedule(selectedUser, newSchedule);
+    setLocalSchedule(newSchedule);
   };
 
   const removeTask = (blockIndex: number, taskIndex: number) => {
-    const newSchedule = [...currentSchedule];
+    const newSchedule = [...localSchedule];
     newSchedule[blockIndex].tasks = newSchedule[blockIndex].tasks.filter((_, i) => i !== taskIndex);
-    updateSchedule(selectedUser, newSchedule);
+    setLocalSchedule(newSchedule);
   };
 
   const updateTask = (blockIndex: number, taskIndex: number, value: string) => {
-    const newSchedule = [...currentSchedule];
+    const newSchedule = [...localSchedule];
     newSchedule[blockIndex].tasks[taskIndex] = value;
-    updateSchedule(selectedUser, newSchedule);
+    setLocalSchedule(newSchedule);
   };
 
   const applyTemplate = (template: 'morning' | 'afternoon' | 'full') => {
@@ -103,7 +112,7 @@ const RoutineEditor = () => {
       ],
     };
 
-    updateSchedule(selectedUser, templates[template]);
+    setLocalSchedule(templates[template]);
     addToast('Template aplicado', 'success');
   };
 
@@ -124,6 +133,22 @@ const RoutineEditor = () => {
           <Button variant="secondary" size="sm" onClick={() => applyTemplate('full')}>
             Template Completo (7h-19h)
           </Button>
+          <div className="flex items-center gap-2 px-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={preserveEnabled} onChange={(e) => setPreserveEnabled(e.target.checked)} />
+              Preservar históricos
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={preserveDays}
+              onChange={(e) => setPreserveDays(Math.max(1, parseInt(e.target.value || '1')))}
+              className="w-16 px-2 py-1 rounded border bg-muted text-sm"
+              title="Últimos N dias"
+              disabled={!preserveEnabled}
+            />
+          </div>
         </div>
       </div>
 
@@ -147,7 +172,7 @@ const RoutineEditor = () => {
 
       {/* Schedule Blocks */}
       <div className="space-y-4">
-        {currentSchedule.map((block, blockIndex) => {
+        {localSchedule.map((block, blockIndex) => {
           const isLunchBlock = block.time === 12 || (block as any).isLunchBreak || 
             block.tasks.some(t => t.toLowerCase().includes('almoço') || t.toLowerCase().includes('intervalo'));
           
@@ -156,17 +181,18 @@ const RoutineEditor = () => {
             key={block.id} 
             className={`animate-slideUp ${isLunchBlock ? 'relative overflow-hidden border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent' : ''}`}
           >
-            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex gap-2 items-center mb-2">
                   <select
                     value={block.time}
                     onChange={(e) => {
-                      const newSchedule = [...currentSchedule];
+                      const newSchedule = [...localSchedule];
                       const newTime = parseInt(e.target.value);
                       newSchedule[blockIndex].time = newTime;
                       newSchedule[blockIndex].label = `${String(newTime).padStart(2, '0')}:00 - ${String(newTime + 1).padStart(2, '0')}:00`;
-                      updateSchedule(selectedUser, newSchedule);
+                      setLocalSchedule(newSchedule);
+                      scheduleSave(newSchedule);
                     }}
                     className="px-3 py-1 rounded-lg bg-muted border border-border text-sm font-bold"
                   >
@@ -180,9 +206,10 @@ const RoutineEditor = () => {
                     type="text"
                     value={block.label}
                     onChange={(e) => {
-                      const newSchedule = [...currentSchedule];
+                      const newSchedule = [...localSchedule];
                       newSchedule[blockIndex].label = e.target.value;
-                      updateSchedule(selectedUser, newSchedule);
+                      setLocalSchedule(newSchedule);
+                      scheduleSave(newSchedule);
                     }}
                     className="flex-1 text-xl font-bold bg-transparent border-none focus:outline-none"
                   />
@@ -191,9 +218,10 @@ const RoutineEditor = () => {
                   <select
                     value={block.priority}
                     onChange={(e) => {
-                      const newSchedule = [...currentSchedule];
+                      const newSchedule = [...localSchedule];
                       newSchedule[blockIndex].priority = e.target.value as 'high' | 'medium';
-                      updateSchedule(selectedUser, newSchedule);
+                      setLocalSchedule(newSchedule);
+                      scheduleSave(newSchedule);
                     }}
                     className="px-3 py-1 rounded-lg bg-muted border border-border text-sm"
                   >
@@ -203,9 +231,10 @@ const RoutineEditor = () => {
                   <select
                     value={block.category}
                     onChange={(e) => {
-                      const newSchedule = [...currentSchedule];
+                      const newSchedule = [...localSchedule];
                       newSchedule[blockIndex].category = e.target.value as any;
-                      updateSchedule(selectedUser, newSchedule);
+                      setLocalSchedule(newSchedule);
+                      scheduleSave(newSchedule);
                     }}
                     className="px-3 py-1 rounded-lg bg-muted border border-border text-sm"
                   >
@@ -216,13 +245,26 @@ const RoutineEditor = () => {
                   </select>
                 </div>
               </div>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => removeBlock(blockIndex)}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    if (!selectedUser) return;
+                    updateSchedule(selectedUser, localSchedule, { preserveDays: preserveEnabled ? preserveDays : 0 });
+                    addToast('Bloco salvo', 'success');
+                  }}
+                >
+                  Salvar
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => removeBlock(blockIndex)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2 mb-4">
