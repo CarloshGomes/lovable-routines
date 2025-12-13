@@ -26,8 +26,8 @@ const Operator = () => {
   
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [showHelp, setShowHelp] = useState(false);
-  const [simulationMode, setSimulationMode] = useState(false);
-  const [simulatedTime, setSimulatedTime] = useState(7);
+  // Simulation mode removed for operators — always use real time
+  const [reportsDraft, setReportsDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!currentUser) {
@@ -78,7 +78,7 @@ const Operator = () => {
     }
   });
 
-  const currentHour = simulationMode ? simulatedTime : new Date().getHours();
+  const currentHour = new Date().getHours();
 
   const handleTaskToggle = (blockId: string, taskIndex: number) => {
     const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
@@ -91,22 +91,25 @@ const Operator = () => {
   };
 
   const handleReportChange = (blockId: string, report: string) => {
-    const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
-    updateTracking(currentUser, blockId, { ...existing, report });
+    setReportsDraft((prev) => ({ ...prev, [blockId]: report }));
   };
 
   const handleReportSend = (blockId: string) => {
     const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
-    if (!existing.report.trim()) {
+    const draft = (reportsDraft[blockId] ?? existing.report ?? '').toString();
+    if (!draft.trim()) {
       addToast('Digite um relatório antes de enviar', 'warning');
       return;
     }
     const now = new Date();
     updateTracking(currentUser, blockId, { 
       ...existing, 
+      report: draft,
       reportSent: true, 
       timestamp: now.toISOString()
     });
+    // keep draft in sync
+    setReportsDraft((prev) => ({ ...prev, [blockId]: draft }));
     addToast('Relatório enviado com sucesso!', 'success');
   };
 
@@ -364,7 +367,7 @@ const Operator = () => {
                 <div className="space-y-3 pt-4 border-t border-border/50">
                   <label className="block text-sm font-medium">Relatório / Retorno</label>
                   <textarea
-                    value={tracking.report}
+                    value={reportsDraft[block.id] ?? tracking.report}
                     onChange={(e) => handleReportChange(block.id, e.target.value)}
                     disabled={tracking.reportSent}
                     className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none resize-none transition-all duration-200"
@@ -377,7 +380,7 @@ const Operator = () => {
                       Relatório enviado às {new Date(tracking.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                    ) : (
-                    <Button size="sm" className="shadow-lg shadow-primary/20">
+                    <Button size="sm" className="shadow-lg shadow-primary/20" onClick={() => handleReportSend(block.id)}>
                       Enviar Relatório
                     </Button>
                   )}
@@ -397,40 +400,19 @@ const Operator = () => {
             </div>
             <div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {simulationMode ? 'Simulação' : 'Ao Vivo'}
-                {!simulationMode && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                  </span>
-                )}
+                Ao Vivo
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                </span>
               </div>
               <div className="text-2xl font-bold text-foreground font-mono">
-                {simulationMode ? `${simulatedTime}:00` : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>
 
-          {simulationMode && (
-            <div className="flex-1 max-w-md">
-              <input
-                type="range"
-                min="7"
-                max="19"
-                value={simulatedTime}
-                onChange={(e) => setSimulatedTime(Number(e.target.value))}
-                className="w-full accent-primary"
-              />
-            </div>
-          )}
-
-          <Button
-            variant={simulationMode ? 'warning' : 'ghost'}
-            size="sm"
-            onClick={() => setSimulationMode(!simulationMode)}
-          >
-            {simulationMode ? 'Desativar' : 'Ativar'} Simulação
-          </Button>
+          {/* Simulation controls removed for operators */}
         </div>
       </div>
 
