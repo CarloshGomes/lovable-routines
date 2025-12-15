@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { AppProvider } from "@/contexts/AppContext";
@@ -13,14 +13,14 @@ const App = () => (
     <ToastProvider>
       <AppProvider>
         <ToastContainer />
-        <BrowserRouter>
+        <HashRouter>
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/operator" element={<Operator />} />
             <Route path="/supervisor" element={<Supervisor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </HashRouter>
       </AppProvider>
     </ToastProvider>
   </ThemeProvider>
