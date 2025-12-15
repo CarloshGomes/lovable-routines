@@ -274,7 +274,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               const hb = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
               hb[username] = timestamp;
               localStorage.setItem('userHeartbeats', JSON.stringify(hb));
-            } catch (e) {}
+              } catch (e) { console.warn('BroadcastChannel HEARTBEAT send failed', e); }
+            refreshActiveFromStorage();
+          }
+        }
+        if (msg.type === 'HEARTBEAT_REMOVE') {
+          const username = msg.data?.username;
+          if (username) {
+            try {
+              const hb = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+              if (hb && hb[username]) {
+                delete hb[username];
+                localStorage.setItem('userHeartbeats', JSON.stringify(hb));
+              }
+            } catch (e) { console.warn('Failed to update localStorage heartbeats', e); }
             refreshActiveFromStorage();
           }
         }
@@ -311,7 +324,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setCurrentUser(username);
     setIsSupervisor(false);
     setActiveUsers((prev) => new Set(prev).add(username));
-    
+    // write heartbeat so other windows see this user as online immediately
+    try {
+      const hb = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+      hb[username] = Date.now();
+      localStorage.setItem('userHeartbeats', JSON.stringify(hb));
+      try {
+        const channel = new BroadcastChannel('app-sync');
+        channel.postMessage({ type: 'HEARTBEAT', data: { username, timestamp: Date.now() } });
+        channel.close();
+      } catch (e) { console.warn('BroadcastChannel not available or failed', e); }
+    } catch (e) { console.warn('Setting initial heartbeat failed', e); }
     // Add activity log to database
     await supabase.from('activity_logs').insert({
       username,
@@ -341,7 +364,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return newSet;
       });
     }
-    
+    // remove heartbeat so other windows see immediate offline
+    try {
+      if (currentUser) {
+        const hb = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+        if (hb && hb[currentUser]) {
+          delete hb[currentUser];
+          localStorage.setItem('userHeartbeats', JSON.stringify(hb));
+        }
+        try {
+          const channel = new BroadcastChannel('app-sync');
+          channel.postMessage({ type: 'HEARTBEAT_REMOVE', data: { username: currentUser } });
+          channel.close();
+        } catch (e) { console.warn('BroadcastChannel HEARTBEAT_REMOVE failed', e); }
+      }
+    } catch (e) {
+      console.warn('Removing heartbeat on logout failed', e);
+    }
+
     await supabase.from('activity_logs').insert({
       username: currentUser || 'supervisor',
       action: 'login',

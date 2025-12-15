@@ -57,7 +57,27 @@ const Operator = () => {
     sendHeartbeat();
     const interval = setInterval(sendHeartbeat, 5000);
 
-    return () => clearInterval(interval);
+    const handleUnload = () => {
+      try {
+        const heartbeats = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+        if (heartbeats && heartbeats[currentUser]) {
+          delete heartbeats[currentUser];
+          localStorage.setItem('userHeartbeats', JSON.stringify(heartbeats));
+        }
+        try {
+          const c = new BroadcastChannel('app-sync');
+          c.postMessage({ type: 'HEARTBEAT_REMOVE', data: { username: currentUser } });
+          c.close();
+        } catch (e) { console.warn('BroadcastChannel remove failed', e); }
+      } catch (e) { console.warn('handleUnload failed', e); }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
   }, [currentUser]);
 
 
