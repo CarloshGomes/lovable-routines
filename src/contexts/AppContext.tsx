@@ -130,11 +130,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           schedulesMap[username].sort((a, b) => a.time - b.time);
         });
 
-        // Garantir ordem consistente por horário para evitar reposicionamento
-        Object.keys(schedulesMap).forEach((username) => {
-          schedulesMap[username].sort((a, b) => a.time - b.time);
-        });
-
         setSchedules(schedulesMap);
       }
 
@@ -242,6 +237,69 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       supabase.removeChannel(channel);
     };
   }, [fetchData]);
+
+  // Heartbeat sync: listen to BroadcastChannel, storage events and poll localStorage
+  useEffect(() => {
+    const HEARTBEAT_TTL = 15000; // consider active if heartbeat within last 15s
+
+    const refreshActiveFromStorage = () => {
+      try {
+        const heartbeats = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+        const now = Date.now();
+        const active = new Set<string>();
+        Object.entries(heartbeats).forEach(([username, ts]) => {
+          const t = Number(ts) || 0;
+          if (now - t < HEARTBEAT_TTL) active.add(username);
+        });
+        setActiveUsers(active);
+      } catch (e) {
+        // ignore parse errors
+      }
+    };
+
+    // Initial population
+    refreshActiveFromStorage();
+
+    // BroadcastChannel for cross-tab/window messages
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('app-sync');
+      channel.onmessage = (ev) => {
+        const msg = ev.data || {};
+        if (msg.type === 'HEARTBEAT') {
+          const username = msg.data?.username;
+          const timestamp = msg.data?.timestamp || Date.now();
+          if (username) {
+            try {
+              const hb = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
+              hb[username] = timestamp;
+              localStorage.setItem('userHeartbeats', JSON.stringify(hb));
+            } catch (e) {}
+            refreshActiveFromStorage();
+          }
+        }
+      };
+    } catch (e) {
+      // BroadcastChannel not available in some environments
+    }
+
+    // Listen to storage changes (other tabs)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'userHeartbeats') refreshActiveFromStorage();
+    };
+    window.addEventListener('storage', onStorage);
+
+    // Poll to remove stale users
+    const interval = setInterval(refreshActiveFromStorage, 5000);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      clearInterval(interval);
+      if (channel) {
+        channel.close();
+      }
+    };
+  }, []);
 
   const validateOperatorPin = (username: string, pin: string): boolean => {
     const profile = userProfiles[username];

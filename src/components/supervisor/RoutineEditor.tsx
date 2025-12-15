@@ -45,10 +45,6 @@ const RoutineEditor = () => {
     }
   }, [localSchedule, selectedUser]);
 
-  useEffect(() => {
-    setLocalSchedule(schedules[selectedUser] || []);
-  }, [selectedUser, schedules]);
-
   const addBlock = () => {
     // Encontrar o próximo horário disponível
     const existingTimes = localSchedule.map(b => b.time);
@@ -146,7 +142,7 @@ const RoutineEditor = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="container mx-auto px-4 space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold">Editor de Rotinas</h2>
@@ -221,7 +217,6 @@ const RoutineEditor = () => {
                       newSchedule[blockIndex].time = newTime;
                       newSchedule[blockIndex].label = `${String(newTime).padStart(2, '0')}:00 - ${String(newTime + 1).padStart(2, '0')}:00`;
                       setLocalSchedule(newSchedule);
-                      scheduleSave(newSchedule);
                     }}
                     className="px-3 py-1 rounded-lg bg-muted border border-border text-sm font-bold"
                   >
@@ -238,7 +233,6 @@ const RoutineEditor = () => {
                       const newSchedule = [...localSchedule];
                       newSchedule[blockIndex].label = e.target.value;
                       setLocalSchedule(newSchedule);
-                      scheduleSave(newSchedule);
                     }}
                     className="flex-1 text-xl font-bold bg-transparent border-none focus:outline-none"
                   />
@@ -250,7 +244,6 @@ const RoutineEditor = () => {
                       const newSchedule = [...localSchedule];
                       newSchedule[blockIndex].priority = e.target.value as 'high' | 'medium';
                       setLocalSchedule(newSchedule);
-                      scheduleSave(newSchedule);
                     }}
                     className="px-3 py-1 rounded-lg bg-muted border border-border text-sm"
                   >
@@ -263,7 +256,6 @@ const RoutineEditor = () => {
                       const newSchedule = [...localSchedule];
                       newSchedule[blockIndex].category = e.target.value as any;
                       setLocalSchedule(newSchedule);
-                      scheduleSave(newSchedule);
                     }}
                     className="px-3 py-1 rounded-lg bg-muted border border-border text-sm"
                   >
