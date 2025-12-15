@@ -16,6 +16,35 @@ const RoutineEditor = () => {
   const [preserveEnabled, setPreserveEnabled] = useState(false);
   const [preserveDays, setPreserveDays] = useState(1);
 
+  // Persist editor drafts per user so reload doesn't lose unsaved edits
+  const draftKey = (username: string) => `routineDraft-${username}`;
+
+  useEffect(() => {
+    // Load draft when selectedUser changes
+    const stored = selectedUser ? localStorage.getItem(draftKey(selectedUser)) : null;
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as ScheduleBlock[];
+        setLocalSchedule(parsed);
+        return;
+      } catch (e) {
+        // ignore parse errors
+      }
+    }
+
+    // fallback to schedule from context
+    setLocalSchedule(schedules[selectedUser] || []);
+  }, [selectedUser, schedules]);
+
+  useEffect(() => {
+    if (!selectedUser) return;
+    try {
+      localStorage.setItem(draftKey(selectedUser), JSON.stringify(localSchedule));
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [localSchedule, selectedUser]);
+
   useEffect(() => {
     setLocalSchedule(schedules[selectedUser] || []);
   }, [selectedUser, schedules]);

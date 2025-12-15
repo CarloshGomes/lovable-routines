@@ -339,28 +339,33 @@ const Operator = () => {
               </div>
 
               <div className="space-y-2 mb-4">
-                {block.tasks.map((task, index) => (
-                  <label
-                    key={`${block.time}-${index}`}
-                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={tracking.tasks.includes(index)}
-                      onChange={() => handleTaskToggle(block.id, index)}
-                      disabled={status === 'future'}
-                      className="mt-1 w-5 h-5 rounded-md border-2 border-primary text-primary focus:ring-2 focus:ring-primary accent-primary"
-                    />
-                    <span className={`flex-1 ${tracking.tasks.includes(index) ? 'line-through opacity-60' : ''}`}>
-                      {task}
-                    </span>
-                    {block.category && (
-                      <span className="text-xs px-2 py-1 bg-accent/20 text-accent-foreground rounded-lg">
-                        {block.category}
-                      </span>
-                    )}
-                  </label>
-                ))}
+                {block.tasks.map((task, index) => {
+                  const taskKey = `${block.id}-task-${index}`;
+                  const isChecked = tracking.tasks.includes(index);
+                  return (
+                    <div
+                      key={taskKey}
+                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
+                    >
+                      <input
+                        id={taskKey}
+                        name={`${block.id}-task`}
+                        type="checkbox"
+                        checked={Boolean(isChecked)}
+                        onChange={() => handleTaskToggle(block.id, index)}
+                        className="mt-1 w-5 h-5 rounded-md border-2 border-primary text-primary focus:ring-2 focus:ring-primary accent-primary"
+                      />
+                      <label htmlFor={taskKey} className={`flex-1 ${isChecked ? 'line-through opacity-60' : ''}`}>
+                        {task}
+                      </label>
+                      {block.category && (
+                        <span className="text-xs px-2 py-1 bg-accent/20 text-accent-foreground rounded-lg">
+                          {block.category}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {status !== 'future' && (

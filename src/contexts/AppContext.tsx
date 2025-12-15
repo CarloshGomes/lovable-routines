@@ -164,8 +164,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           if (!trackingMap[t.username]) {
             trackingMap[t.username] = {};
           }
+          // completed_tasks stored as ['task-0','task-2',...]
+          const parsedTasks: number[] = (t.completed_tasks || []).map((s: string) => {
+            const m = String(s).match(/task-(\d+)/);
+            return m ? parseInt(m[1], 10) : NaN;
+          }).filter((n: number) => !isNaN(n));
+
           trackingMap[t.username][t.tracking_key] = {
-            tasks: t.completed_tasks?.map((_, i) => i) || [],
+            tasks: parsedTasks,
             report: t.notes || '',
             reportSent: !!t.notes,
             timestamp: t.updated_at,

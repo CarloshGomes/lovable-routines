@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -10,7 +10,7 @@ import logoImage from '@/assets/logo.svg';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { userProfiles, supervisorPin, login, loginSupervisor, validateOperatorPin, isLoading } = useApp();
+  const { userProfiles, supervisorPin, login, loginSupervisor, validateOperatorPin, isLoading, currentUser, isSupervisor } = useApp();
   const { theme, toggleTheme } = useTheme();
   const { addToast } = useToast();
   const [showPinModal, setShowPinModal] = useState(false);
@@ -19,6 +19,17 @@ const Login = () => {
   const [pin, setPin] = useState('');
   const [showOperatorPin, setShowOperatorPin] = useState(false);
   const [showSupervisorPin, setShowSupervisorPin] = useState(false);
+
+  // If already logged in, redirect to appropriate page
+  useEffect(() => {
+    if (!isLoading) {
+      if (isSupervisor) {
+        navigate('/supervisor');
+      } else if (currentUser) {
+        navigate('/operator');
+      }
+    }
+  }, [isLoading, currentUser, isSupervisor, navigate]);
 
   // Show loading state while data is being fetched
   if (isLoading) {
