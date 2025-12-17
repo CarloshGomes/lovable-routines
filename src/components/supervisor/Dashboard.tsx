@@ -30,6 +30,9 @@ const Dashboard = () => {
   const [operatorsModalOpen, setOperatorsModalOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const notifiedRef = useRef<Set<string>>(new Set());
+  const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
+  const [operatorFilterOpen, setOperatorFilterOpen] = useState(false);
+  const [operatorSearch, setOperatorSearch] = useState('');
 
   // Filter tracking data to show only today's data in list view
   const today = new Date().toISOString().split('T')[0];
@@ -150,6 +153,77 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Operator multi-filter (improved UI) */}
+      <div className="relative">
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium">Filtrar Operadores:</label>
+          <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-2 max-w-2xl">
+              {selectedOperators.length === 0 ? (
+                <span className="text-sm text-muted-foreground">Todos</span>
+              ) : (
+                selectedOperators.map((u) => (
+                  <button
+                    key={u}
+                    onClick={() => setSelectedOperators((s) => s.filter(x => x !== u))}
+                    className="px-2 py-1 rounded-full bg-muted/60 text-sm flex items-center gap-2"
+                  >
+                    <span>{userProfiles[u]?.name || u}</span>
+                    <span className="text-xs text-muted-foreground">✕</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setOperatorFilterOpen((v) => !v)}>
+              Filtrar
+            </Button>
+            {selectedOperators.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={() => setSelectedOperators([])}>
+                Limpar
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {operatorFilterOpen && (
+          <div className="absolute z-40 mt-2 w-80 bg-card border border-border rounded shadow-lg p-3">
+            <input
+              placeholder="Buscar operador..."
+              value={operatorSearch}
+              onChange={(e) => setOperatorSearch(e.target.value)}
+              className="w-full px-3 py-2 rounded border border-border bg-background text-sm"
+            />
+            <div className="max-h-48 overflow-y-auto mt-2 space-y-1">
+              {Object.entries(userProfiles)
+                .filter(([u, p]) => p.name.toLowerCase().includes(operatorSearch.toLowerCase()) || u.toLowerCase().includes(operatorSearch.toLowerCase()))
+                .map(([u, p]) => (
+                  <label key={u} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOperators.includes(u)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedOperators((s) => Array.from(new Set([...s, u])));
+                        else setSelectedOperators((s) => s.filter(x => x !== u));
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1 text-sm">
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.role}</div>
+                    </div>
+                  </label>
+                ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-3">
+              <Button size="sm" variant="outline" onClick={() => { setSelectedOperators([]); setOperatorSearch(''); }}>
+                Limpar
+              </Button>
+              <Button size="sm" onClick={() => setOperatorFilterOpen(false)}>Fechar</Button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -215,7 +289,9 @@ const Dashboard = () => {
         <>
           {/* Controle Detalhado por Operador */}
           <div className="space-y-6">
-          {Object.entries(userProfiles).map(([username, profile]) => {
+          {Object.entries(userProfiles)
+            .filter(([username]) => selectedOperators.length === 0 || selectedOperators.includes(username))
+            .map(([username, profile]) => {
           const isActive = activeUsers.has(username);
           const schedule = schedules[username] || [];
           const tracking = todayTrackingData[username] || {};
