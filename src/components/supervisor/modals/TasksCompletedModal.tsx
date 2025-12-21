@@ -1,5 +1,12 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useApp } from '@/contexts/AppContext';
 import { CheckCircle2, Circle, User, Download } from 'lucide-react';
 import { Button } from '@/components/Button';
@@ -161,26 +168,30 @@ export const TasksCompletedModal = ({ open, onOpenChange }: TasksCompletedModalP
       console.log('[ExportWord] operatorFilter=', operatorFilter, 'rows=', rowsSource.length);
 
       const rows = [
-        new TableRow({ children: [
-          new TableCell({ children: [new Paragraph({ children: [new TextRun('Operador')]} )], width: { size: 20, type: WidthType.PERCENTAGE }}),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun('Horario')]} )], width: { size: 20, type: WidthType.PERCENTAGE }}),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun('Tarefa')]} )], width: { size: 45, type: WidthType.PERCENTAGE }}),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun('Concluída')]} )], width: { size: 15, type: WidthType.PERCENTAGE }}),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun('Hora')]} )], width: { size: 15, type: WidthType.PERCENTAGE }}),
-        ]})
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph({ children: [new TextRun('Operador')] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun('Horario')] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun('Tarefa')] })], width: { size: 45, type: WidthType.PERCENTAGE } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun('Concluída')] })], width: { size: 15, type: WidthType.PERCENTAGE } }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun('Hora')] })], width: { size: 15, type: WidthType.PERCENTAGE } }),
+          ]
+        })
       ];
 
       rowsSource.forEach(r => {
-        rows.push(new TableRow({ children: [
-          new TableCell({ children: [new Paragraph(r.name)] }),
-          new TableCell({ children: [new Paragraph(r.blockLabel)] }),
-          new TableCell({ children: [new Paragraph(r.task)] }),
-          new TableCell({ children: [new Paragraph({ children: [ new TextRun({ text: r.completed ? 'Sim' : 'Não', color: r.completed ? '008000' : 'B00000' }) ] })] }),
-          new TableCell({ children: [new Paragraph(r.completedAt ? new Date(r.completedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '')] }),
-        ]}));
+        rows.push(new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph(r.name)] }),
+            new TableCell({ children: [new Paragraph(r.blockLabel)] }),
+            new TableCell({ children: [new Paragraph(r.task)] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.completed ? 'Sim' : 'Não', color: r.completed ? '008000' : 'B00000' })] })] }),
+            new TableCell({ children: [new Paragraph(r.completedAt ? new Date(r.completedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '')] }),
+          ]
+        }));
       });
 
-      const doc = new Document({ sections: [{ children: [ new Paragraph({ text: `Tarefas Concluídas - ${today}`, heading: 'Heading1' }), new Table({ rows }) ] }] });
+      const doc = new Document({ sections: [{ children: [new Paragraph({ text: `Tarefas Concluídas - ${today}`, heading: 'Heading1' }), new Table({ rows })] }] });
       const blob = await Packer.toBlob(doc);
       console.log('[ExportWord] blob size=', blob.size);
       addToast(`Gerando arquivo Word (${rowsSource.length} linhas)`, 'info');
@@ -205,16 +216,17 @@ export const TasksCompletedModal = ({ open, onOpenChange }: TasksCompletedModalP
         <div className="space-y-6">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <select
-                value={operatorFilter}
-                onChange={(e) => setOperatorFilter(e.target.value)}
-                className="px-3 py-1 rounded bg-muted border border-border text-sm"
-              >
-                <option value="all">Todos</option>
-                {Object.keys(userProfiles).map((u) => (
-                  <option key={u} value={u}>{userProfiles[u].name}</option>
-                ))}
-              </select>
+              <Select value={operatorFilter} onValueChange={setOperatorFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selecione um operador" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {Object.keys(userProfiles).map((u) => (
+                    <SelectItem key={u} value={u}>{userProfiles[u].name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center gap-3">
@@ -272,7 +284,7 @@ export const TasksCompletedModal = ({ open, onOpenChange }: TasksCompletedModalP
                     </div>
                   ))}
                 </div>
-                ) : (
+              ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhuma tarefa programada
                 </p>

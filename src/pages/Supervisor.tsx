@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/Button';
-import { 
-  LayoutDashboard, Users, Calendar, Settings, LogOut, ShieldCheck, Activity, Sun, Moon
-} from 'lucide-react';
+
+import { SupervisorHeader } from '@/components/supervisor/SupervisorHeader';
 import Dashboard from '@/components/supervisor/Dashboard';
 import TeamManager from '@/components/supervisor/TeamManager';
 import RoutineEditor from '@/components/supervisor/RoutineEditor';
 import SettingsPanel from '@/components/supervisor/SettingsPanel';
-import logoImage from '@/assets/logo.svg';
+import { AnalyticsView } from '@/components/supervisor/AnalyticsView';
+import { SUPERVISOR_TABS, SupervisorTabId } from '@/constants/supervisor';
 
-type Tab = 'dashboard' | 'team' | 'routines' | 'settings';
+type Tab = SupervisorTabId;
 
 const Supervisor = () => {
   const navigate = useNavigate();
@@ -20,12 +20,7 @@ const Supervisor = () => {
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
-  const tabs = [
-    { id: 'dashboard' as Tab, label: 'Visão Geral', icon: LayoutDashboard },
-    { id: 'team' as Tab, label: 'Equipe', icon: Users },
-    { id: 'routines' as Tab, label: 'Rotinas', icon: Calendar },
-    { id: 'settings' as Tab, label: 'Ajustes', icon: Settings },
-  ];
+  const tabs = SUPERVISOR_TABS;
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,60 +32,8 @@ const Supervisor = () => {
       </div>
 
       {/* Premium Header */}
-      <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-2xl border-b border-border/50 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Left - Logo & Title */}
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <img src={logoImage} alt="Logo" className="w-10 h-10 object-contain" />
-                <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-lg" />
-              </div>
-              
-              <div className="h-8 w-px bg-border/50" />
-              
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30">
-                  <ShieldCheck className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                    Painel Supervisor
-                  </h1>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Activity className="w-3.5 h-3.5 text-success" />
-                    <span>Gestão completa do sistema</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right - Actions */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleTheme}
-                className="hover:bg-primary/10"
-              >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => {
-                  logout();
-                  navigate('/');
-                }}
-                className="shadow-lg shadow-danger/20"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Sair</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Premium Header */}
+      <SupervisorHeader activeTab={activeTab} />
 
       {/* Tabs */}
       <div className="sticky top-[73px] z-30 bg-card/60 backdrop-blur-xl border-b border-border/50">
@@ -102,15 +45,14 @@ const Supervisor = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2.5 px-5 py-3.5 whitespace-nowrap transition-all duration-300 rounded-xl ${
-                    isActive
-                      ? 'text-primary font-semibold'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
+                  className={`relative flex items-center gap-2.5 px-5 py-3.5 whitespace-nowrap transition-all duration-300 rounded-xl ${isActive
+                    ? 'text-primary font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
                 >
                   <tab.icon className={`w-4.5 h-4.5 ${isActive ? 'text-primary' : ''}`} />
                   <span>{tab.label}</span>
-                  
+
                   {/* Active indicator */}
                   {isActive && (
                     <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-primary via-primary to-accent rounded-full" />
@@ -125,6 +67,7 @@ const Supervisor = () => {
       {/* Content */}
       <div className="container mx-auto px-4 py-6">
         {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'analytics' && <AnalyticsView />}
         {activeTab === 'team' && <TeamManager />}
         {activeTab === 'routines' && <RoutineEditor />}
         {activeTab === 'settings' && <SettingsPanel />}

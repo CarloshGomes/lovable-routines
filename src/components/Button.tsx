@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'ghost' | 'outline';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -15,7 +15,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
       active:scale-[0.98]
     `;
-    
+
     const variants = {
       primary: `
         bg-gradient-to-br from-primary to-primary-dark text-primary-foreground 
@@ -57,6 +57,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       sm: 'px-3 py-1.5 text-sm',
       md: 'px-4 py-2.5 text-sm',
       lg: 'px-6 py-3 text-base',
+      icon: 'h-10 w-10 p-0',
     };
 
     return (
