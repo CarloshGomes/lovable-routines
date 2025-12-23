@@ -121,23 +121,48 @@ const Dashboard = () => {
   // Notifications Hook
   const { notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
+  // Initialize notifiedRef from localStorage to persist dismissal across reloads
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sent_late_notifications');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Filter only keys for today to allow new notifications tomorrow
+        const todayKeys = parsed.filter((k: string) => k.startsWith(today));
+        todayKeys.forEach((k: string) => notifiedRef.current.add(k));
+      }
+    } catch (e) {
+      console.error('Failed to load sent notifications history', e);
+    }
+  }, [today]);
+
   // Automatic notifications for late tasks
   useEffect(() => {
+    // Check for duplicates and logic validation
+    console.log("--- Validation Logic Check: Late Tasks ---");
+
+    let hasUpdates = false;
+
     // Always check for late tasks
     lateOperatorsData.forEach(({ username, lateBlocks }) => {
       lateBlocks.forEach((block) => {
         const notificationKey = `${today}-${username}-${block.id}`;
 
+        console.log(`Checking operator: ${username}, Block: ${block.label}, Status: LATE`);
+
+        // Check if this specific notification key already exists in history
         if (!notifiedRef.current.has(notificationKey)) {
           notifiedRef.current.add(notificationKey);
+          hasUpdates = true;
 
           const operatorName = userProfiles[username]?.name || username;
 
-          // Add to persistent store
+          // Add to persistent store with metadata for deduplication
           addNotification(
             `Tarefa Atrasada: ${operatorName}`,
             `${block.label} não foi concluído no horário previsto`,
-            'warning'
+            'warning',
+            { notificationKey }
           );
 
           // Show toast if enabled
@@ -151,9 +176,18 @@ const Dashboard = () => {
               }
             );
           }
+        } else {
+          console.log(`Skipping notification for ${username} (Already notified in history)`);
         }
       });
     });
+
+    // Update localStorage if we added new keys
+    if (hasUpdates) {
+      localStorage.setItem('sent_late_notifications', JSON.stringify(Array.from(notifiedRef.current)));
+    }
+
+    console.log("--- End Validation Check ---");
   }, [lateOperatorsData, notificationsEnabled, today, userProfiles, addNotification]);
 
   return (

@@ -7,18 +7,28 @@ import { Modal } from '@/components/Modal';
 import { Plus, Edit2, Trash2, User, Shield, Eye, EyeOff } from 'lucide-react';
 
 const colors = ['blue', 'purple', 'green', 'indigo', 'red', 'yellow', 'pink', 'cyan'];
+const colorMap: Record<string, string> = {
+  blue: 'bg-blue-500',
+  purple: 'bg-purple-500',
+  green: 'bg-green-500',
+  indigo: 'bg-indigo-500',
+  red: 'bg-red-500',
+  yellow: 'bg-yellow-500',
+  pink: 'bg-pink-500',
+  cyan: 'bg-cyan-500'
+};
 const avatars = ['👨‍💼', '👩‍💼', '👨‍💻', '👩‍💻', '🕵️‍♀️', '🕵️', '🤵‍♀️', '🤵‍♂️'];
 
 const TeamManager = () => {
   const { userProfiles, updateProfile, deleteProfile } = useApp();
   const { addToast } = useToast();
-  
+
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingUsername, setEditingUsername] = useState<string | null>(null);
   const [deleteUsername, setDeleteUsername] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     role: '',
@@ -61,7 +71,7 @@ const TeamManager = () => {
     }
 
     const username = editingUsername || formData.name.toLowerCase().replace(/\s/g, '');
-    
+
     if (!editingUsername && userProfiles[username]) {
       addToast('Já existe um operador com este nome', 'error');
       return;
@@ -82,7 +92,7 @@ const TeamManager = () => {
 
   const handleDelete = () => {
     if (!deleteUsername) return;
-    
+
     if (Object.keys(userProfiles).length === 1) {
       addToast('Não é possível excluir o último operador', 'error');
       return;
@@ -111,7 +121,7 @@ const TeamManager = () => {
         {Object.entries(userProfiles).map(([username, profile]) => (
           <GlassCard key={username} className={editingUsername === username ? 'ring-2 ring-primary' : ''}>
             <div className="flex items-start gap-4 mb-4">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl bg-${profile.color}-500/20`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl ${colorMap[profile.color]}/20`}>
                 {profile.avatar}
               </div>
               <div className="flex-1">
@@ -213,9 +223,8 @@ const TeamManager = () => {
                 <button
                   key={color}
                   onClick={() => setFormData({ ...formData, color })}
-                  className={`w-10 h-10 rounded-lg bg-${color}-500 ${
-                    formData.color === color ? 'ring-2 ring-offset-2 ring-primary' : ''
-                  }`}
+                  className={`w-10 h-10 rounded-lg ${colorMap[color]} ${formData.color === color ? 'ring-2 ring-offset-2 ring-primary' : ''
+                    }`}
                 />
               ))}
             </div>
@@ -228,9 +237,8 @@ const TeamManager = () => {
                 <button
                   key={avatar}
                   onClick={() => setFormData({ ...formData, avatar })}
-                  className={`w-10 h-10 rounded-lg text-2xl flex items-center justify-center ${
-                    formData.avatar === avatar ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted hover:bg-muted/70'
-                  }`}
+                  className={`w-10 h-10 rounded-lg text-2xl flex items-center justify-center ${formData.avatar === avatar ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted hover:bg-muted/70'
+                    }`}
                 >
                   {avatar}
                 </button>
