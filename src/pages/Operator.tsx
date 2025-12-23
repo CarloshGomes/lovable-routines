@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/Button';
 import { GlassCard } from '@/components/GlassCard';
 import { Greeting } from '@/components/Greeting';
-import { 
+import {
   LogOut, HelpCircle, Clock, Sun, Moon,
   CheckCircle2, Circle, Filter, Zap, TrendingUp
 } from 'lucide-react';
@@ -17,17 +17,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { CelebrationModal } from '@/components/CelebrationModal';
 
 const Operator = () => {
   const navigate = useNavigate();
   const { currentUser, userProfiles, schedules, trackingData, updateTracking, logout } = useApp();
   const { addToast } = useToast();
   const { theme, toggleTheme } = useTheme();
-  
+
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [showHelp, setShowHelp] = useState(false);
   // Simulation mode removed for operators — always use real time
   const [reportsDraft, setReportsDraft] = useState<Record<string, string>>({});
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
 
   useEffect(() => {
     if (!currentUser) {
@@ -43,7 +45,7 @@ const Operator = () => {
       const heartbeats = JSON.parse(localStorage.getItem('userHeartbeats') || '{}');
       heartbeats[currentUser] = Date.now();
       localStorage.setItem('userHeartbeats', JSON.stringify(heartbeats));
-      
+
       // Broadcast heartbeat
       const channel = new BroadcastChannel('app-sync');
       channel.postMessage({
@@ -86,7 +88,7 @@ const Operator = () => {
   const profile = userProfiles[currentUser];
   const userSchedule = schedules[currentUser] || [];
   const allUserTracking = trackingData[currentUser] || {};
-  
+
   // Filter tracking to show only today's data
   const today = new Date().toISOString().split('T')[0];
   const userTracking: Record<string, any> = {};
@@ -105,7 +107,7 @@ const Operator = () => {
     const tasks = existing.tasks.includes(taskIndex)
       ? existing.tasks.filter((t: number) => t !== taskIndex)
       : [...existing.tasks, taskIndex];
-    
+
     updateTracking(currentUser, blockId, { ...existing, tasks });
     addToast(tasks.includes(taskIndex) ? 'Tarefa concluída!' : 'Tarefa reaberta', 'success');
   };
@@ -122,10 +124,10 @@ const Operator = () => {
       return;
     }
     const now = new Date();
-    updateTracking(currentUser, blockId, { 
-      ...existing, 
+    updateTracking(currentUser, blockId, {
+      ...existing,
       report: draft,
-      reportSent: true, 
+      reportSent: true,
       timestamp: now.toISOString()
     });
     // keep draft in sync
@@ -148,26 +150,33 @@ const Operator = () => {
   const completedTasks = Object.values(userTracking).reduce((sum: number, t: any) => sum + t.tasks.length, 0);
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
+  // Check for celebration
+  useEffect(() => {
+    if (progress === 100 && totalTasks > 0) {
+      setCelebrationOpen(true);
+    }
+  }, [progress, totalTasks]);
+
   const getBlockStatus = (blockId: string, time: number) => {
     const tracking = userTracking[blockId];
     const block = userSchedule.find((b) => b.id === blockId);
     if (!block) return 'future';
-    
+
     const hasTasks = block.tasks.length > 0;
     const isCompleted = hasTasks && tracking && tracking.tasks.length === block.tasks.length;
-    
+
     // Blocos completos sempre aparecem como completos
     if (isCompleted) return 'completed';
-    
+
     // Blocos sem tarefas (intervalos) se auto-completam quando o horário passa
     if (!hasTasks && time < currentHour) return 'completed';
-    
+
     // Bloco atual
     if (time === currentHour) return 'current';
-    
+
     // Blocos com tarefas incompletas no passado estão atrasados
     if (hasTasks && time < currentHour) return 'late';
-    
+
     // Blocos futuros
     return 'future';
   };
@@ -192,13 +201,13 @@ const Operator = () => {
                 <img src={logoImage} alt="Logo" className="w-10 h-10 object-contain" />
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg" />
               </div>
-              
+
               <div className="h-8 w-px bg-border/50 hidden sm:block" />
-              
-              <Greeting 
-                name={profile.name} 
-                showRole 
-                role={profile.role} 
+
+              <Greeting
+                name={profile.name}
+                showRole
+                role={profile.role}
                 avatar={profile.avatar}
                 size="md"
               />
@@ -206,26 +215,26 @@ const Operator = () => {
 
             {/* Right - Actions */}
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={toggleTheme}
                 className="hover:bg-primary/10"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowHelp(true)}
               >
                 <HelpCircle className="w-4 h-4" />
                 <span className="hidden sm:inline">Ajuda</span>
               </Button>
-              <Button 
-                variant="danger" 
-                size="sm" 
-                onClick={() => { logout(); navigate('/'); }}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={async () => { await logout(); navigate('/'); }}
                 className="shadow-lg shadow-danger/20"
               >
                 <LogOut className="w-4 h-4" />
@@ -251,7 +260,7 @@ const Operator = () => {
               </div>
             </div>
             <div className="h-3 bg-muted rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-primary via-primary to-accent rounded-full transition-all duration-500 relative"
                 style={{ width: `${progress}%` }}
               >
@@ -290,8 +299,8 @@ const Operator = () => {
           const status = getBlockStatus(block.id, block.time);
           const tracking = userTracking[block.id] || { tasks: [], report: '', reportSent: false, timestamp: '' };
           const blockProgress = block.tasks.length > 0 ? (tracking.tasks.length / block.tasks.length) * 100 : 0;
-          
-          const isLunchBlock = block.time === 12 || 
+
+          const isLunchBlock = block.time === 12 ||
             block.tasks.some(t => t.toLowerCase().includes('almoço') || t.toLowerCase().includes('intervalo'));
 
           const statusStyles = {
@@ -300,9 +309,9 @@ const Operator = () => {
             completed: 'border-success/50 bg-success/5',
             future: 'opacity-70',
           };
-          
-          const lunchStyles = isLunchBlock 
-            ? 'border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent' 
+
+          const lunchStyles = isLunchBlock
+            ? 'border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent'
             : '';
 
           return (
@@ -340,13 +349,13 @@ const Operator = () => {
                 <div className="relative w-16 h-16">
                   <svg className="transform -rotate-90 w-16 h-16">
                     <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="none" className="text-muted" />
-                    <circle 
-                      cx="32" 
-                      cy="32" 
-                      r="28" 
-                      stroke="currentColor" 
-                      strokeWidth="4" 
-                      fill="none" 
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
                       className="text-primary transition-all duration-500"
                       strokeDasharray={`${2 * Math.PI * 28}`}
                       strokeDashoffset={`${2 * Math.PI * 28 * (1 - blockProgress / 100)}`}
@@ -399,12 +408,12 @@ const Operator = () => {
                     rows={3}
                     placeholder="Descreva as atividades realizadas..."
                   />
-                   {tracking.reportSent ? (
+                  {tracking.reportSent ? (
                     <div className="flex items-center gap-2 text-sm text-success font-medium">
                       <CheckCircle2 className="w-4 h-4" />
                       Relatório enviado às {new Date(tracking.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
-                   ) : (
+                  ) : (
                     <Button size="sm" className="shadow-lg shadow-primary/20" onClick={() => handleReportSend(block.id)}>
                       Enviar Relatório
                     </Button>
@@ -461,7 +470,7 @@ const Operator = () => {
                   Clique na caixa de seleção ao lado de cada tarefa para marcá-la como concluída.
                 </p>
               </div>
-              
+
               <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
                 <h4 className="font-semibold mb-2 flex items-center gap-2">
                   <Filter className="w-4 h-4 text-primary" />
@@ -471,7 +480,7 @@ const Operator = () => {
                   Use os botões de filtro para ver todas as tarefas, apenas pendentes ou apenas concluídas.
                 </p>
               </div>
-              
+
               <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
                 <h4 className="font-semibold mb-2 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-warning" />
@@ -481,7 +490,7 @@ const Operator = () => {
                   Após concluir as tarefas de um bloco, preencha o campo de relatório e clique em "Enviar Relatório".
                 </p>
               </div>
-              
+
               <div className="p-4 rounded-xl bg-muted/50 border border-border/50">
                 <h4 className="font-semibold mb-2 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-accent" />
@@ -495,6 +504,12 @@ const Operator = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CelebrationModal
+        open={celebrationOpen}
+        onOpenChange={setCelebrationOpen}
+        userName={profile.name}
+      />
     </div>
   );
 };
