@@ -8,7 +8,8 @@ import { SpotlightCard } from '@/components/SpotlightCard';
 import { Greeting } from '@/components/Greeting';
 import {
   LogOut, HelpCircle, Clock, Sun, Moon,
-  CheckCircle2, Circle, Filter, Zap, TrendingUp, LayoutDashboard
+  CheckCircle2, Circle, Filter, Zap, TrendingUp, LayoutDashboard,
+  AlertTriangle, XCircle, Send
 } from 'lucide-react';
 import logoImage from '@/assets/logo.svg';
 import {
@@ -90,6 +91,17 @@ const Operator = () => {
   if (!currentUser) return null;
 
   const profile = userProfiles[currentUser];
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 animate-in fade-in duration-700">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground animate-pulse">Carregando perfil...</p>
+        </div>
+      </div>
+    );
+  }
   const userSchedule = schedules[currentUser] || [];
   const allUserTracking = trackingData[currentUser] || {};
 
@@ -137,6 +149,24 @@ const Operator = () => {
     // keep draft in sync
     setReportsDraft((prev) => ({ ...prev, [blockId]: draft }));
     addToast('Relatório enviado com sucesso!', 'success');
+  };
+
+  const handleDelayReport = (blockId: string, reason: string, isImpossible: boolean = false) => {
+    const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
+
+    updateTracking(currentUser, blockId, {
+      ...existing,
+      delayReason: reason,
+      isImpossible: isImpossible,
+      escalated: true, // Auto-escalation
+      timestamp: new Date().toISOString()
+    });
+
+    if (isImpossible) {
+      addToast('Bloco marcado como impossível. Supervisor notificado.', 'error');
+    } else {
+      addToast('Justificativa de atraso registrada.', 'warning');
+    }
   };
 
   const filteredSchedule = userSchedule.filter((block) => {
@@ -438,6 +468,61 @@ const Operator = () => {
                       Enviar Relatório
                     </Button>
                   )}
+                </div>
+              )}
+
+              {/* Late Block Handling */}
+              {status === 'late' && !tracking.escalated && (
+                <div className="mt-4 p-4 rounded-xl bg-danger/5 border border-danger/20 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 mb-3 text-danger font-medium">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span>Atenção: Atividade Atrasada</span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <select
+                      className="flex-1 px-4 py-2 rounded-lg bg-background border border-danger/30 focus:border-danger focus:ring-2 focus:ring-danger/20 outline-none text-sm"
+                      onChange={(e) => e.target.value && handleDelayReport(block.id, e.target.value)}
+                      value=""
+                    >
+                      <option value="" disabled>Selecione o motivo do atraso...</option>
+                      <option value="high_demand">Alta demanda de chamados</option>
+                      <option value="system_slowness">Lentidão no sistema</option>
+                      <option value="external_factor">Fatores externos</option>
+                      <option value="break_adjustment">Ajuste de intervalo</option>
+                      <option value="other">Outro (Descrever no relatório)</option>
+                    </select>
+
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      className="whitespace-nowrap shadow-none border border-danger/50"
+                      onClick={() => handleDelayReport(block.id, 'impossible_to_complete', true)}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Marcar como Impossível
+                    </Button>
+                  </div>
+                  <p className="text-xs text-danger/70 mt-2">
+                    * Selecionar um motivo notificará automaticamente o supervisor.
+                  </p>
+                </div>
+              )}
+
+              {status === 'late' && tracking.escalated && (
+                <div className="mt-4 p-3 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-between">
+                  <span className="text-sm font-medium text-danger flex items-center gap-2">
+                    <Send className="w-4 h-4" />
+                    Supervisor notificado: {tracking.isImpossible ? 'Impossível realizar' : 'Atraso justificado'}
+                  </span>
+                  <span className="text-xs text-danger/80 bg-danger/10 px-2 py-1 rounded">
+                    {tracking.delayReason === 'high_demand' && 'Alta Demanda'}
+                    {tracking.delayReason === 'system_slowness' && 'Sistema Lento'}
+                    {tracking.delayReason === 'external_factor' && 'Externo'}
+                    {tracking.delayReason === 'break_adjustment' && 'Intervalo'}
+                    {tracking.delayReason === 'other' && 'Outro'}
+                    {tracking.delayReason === 'impossible_to_complete' && 'Cancelado'}
+                  </span>
                 </div>
               )}
             </SpotlightCard>

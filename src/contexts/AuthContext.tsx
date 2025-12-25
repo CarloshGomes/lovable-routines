@@ -191,6 +191,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const updateProfile = async (username: string, profile: UserProfile) => {
+        if (!username) {
+            console.error('Tentativa de atualizar perfil sem username!');
+            return;
+        }
+
+        console.log(`Atualizando perfil [${username}]...`);
+
         const { data: existing } = await supabase
             .from('profiles')
             .select('username')
@@ -201,20 +208,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             username,
             name: profile.name,
             role: 'operator',
-            position: profile.role, // role in UI maps to position in DB? AppContext logic: role: profile.role === 'operator' ? 'operator' : 'operator', position: profile.role
+            position: profile.role,
             color: profile.color,
             avatar: profile.avatar,
             pin: profile.pin || null,
         };
 
         if (existing) {
-            await supabase.from('profiles').update(payload).eq('username', username);
+            const { error } = await supabase.from('profiles').update(payload).eq('username', username);
+            if (error) console.error('Erro ao atualizar perfil:', error);
         } else {
-            await supabase.from('profiles').insert(payload);
+            const { error } = await supabase.from('profiles').insert(payload);
+            if (error) console.error('Erro ao criar perfil:', error);
         }
 
         await supabase.from('activity_logs').insert({
-            username: 'supervisor',
+            username: 'supervisor', // Should this be currentUser? 'supervisor' is likely used for audit logging authority.
             action: 'profile_edit',
             details: `Atualizou perfil de ${profile.name}`,
         });
