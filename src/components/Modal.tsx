@@ -8,9 +8,10 @@ interface ModalProps {
   title?: string;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
-export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalProps) => {
+export const Modal = ({ isOpen, onClose, title, children, size = 'md', className }: ModalProps) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -34,17 +35,17 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
     >
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-fadeIn"
         onClick={onClose}
       />
-      
+
       {/* Modal Content */}
       <div
         className={cn(
@@ -52,13 +53,14 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           'bg-card/95 backdrop-blur-2xl',
           'border border-border/50',
           'rounded-2xl shadow-premium-lg',
-          sizes[size]
+          sizes[size],
+          className
         )}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Gradient accent */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-        
+
         {title && (
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h2>

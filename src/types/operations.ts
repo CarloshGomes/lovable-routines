@@ -3,7 +3,7 @@ export interface ScheduleBlock {
     time: number;
     label: string;
     tasks: string[];
-    priority?: 'high' | 'medium';
+    priority?: 'high' | 'medium' | 'low';
     category?: 'sistema' | 'monitoramento' | 'organização' | 'comunicação';
     type?: 'break';
 }

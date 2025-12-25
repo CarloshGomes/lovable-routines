@@ -106,6 +106,15 @@ export const useLoginController = () => {
         // Handlers
         handleOperatorClick,
         handleOperatorPinSubmit,
-        handleSupervisorAccess
+        handleSupervisorAccess,
+        verifySupervisor: async (inputPin: string) => {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            if (inputPin === supervisorPin) {
+                loginSupervisor();
+                addToast('Acesso supervisor concedido', 'success');
+                return true;
+            }
+            return false;
+        }
     };
 };

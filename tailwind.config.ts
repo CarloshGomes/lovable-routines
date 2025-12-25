@@ -78,6 +78,24 @@ export default {
           bg: "hsl(var(--glass-bg))",
           border: "hsl(var(--glass-border))",
         },
+        // Semantic System
+        functional: {
+          success: "hsl(var(--color-success))",
+          warning: "hsl(var(--color-warning))",
+          error: "hsl(var(--color-error))",
+          info: "hsl(var(--color-info))",
+        },
+        priority: {
+          high: "hsl(var(--priority-high))",
+          medium: "hsl(var(--priority-medium))",
+          low: "hsl(var(--priority-low))",
+        },
+        cat: {
+          sistema: "hsl(var(--cat-sistema))",
+          monitoramento: "hsl(var(--cat-monitoramento))",
+          manutencao: "hsl(var(--cat-manutencao))",
+          seguranca: "hsl(var(--cat-seguranca))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -91,6 +109,14 @@ export default {
         "18": "4.5rem",
         "88": "22rem",
         "128": "32rem",
+        // Design Scale
+        "space-1": "var(--space-1)",
+        "space-2": "var(--space-2)",
+        "space-3": "var(--space-3)",
+        "space-4": "var(--space-4)",
+        "space-5": "var(--space-5)",
+        "space-6": "var(--space-6)",
+        "space-8": "var(--space-8)",
       },
       boxShadow: {
         "glow-sm": "0 0 10px -3px hsl(var(--primary) / 0.3)",

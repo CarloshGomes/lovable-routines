@@ -4,7 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/Button';
 import { GlassCard } from '@/components/GlassCard';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Copy, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
 
 const RoutineEditor = () => {
   const { userProfiles, schedules, updateSchedule } = useApp();
@@ -15,6 +15,11 @@ const RoutineEditor = () => {
   const [localSchedule, setLocalSchedule] = useState<ScheduleBlock[]>(currentSchedule);
   const [preserveEnabled, setPreserveEnabled] = useState(false);
   const [preserveDays, setPreserveDays] = useState(1);
+  const [expandedBlocks, setExpandedBlocks] = useState<Record<string, boolean>>({});
+
+  const toggleBlock = (id: string) => {
+    setExpandedBlocks(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Persist editor drafts per user so reload doesn't lose unsaved edits
   const draftKey = (username: string) => `routineDraft-${username}`;
@@ -52,7 +57,7 @@ const RoutineEditor = () => {
     while (existingTimes.includes(nextTime) && nextTime < 19) {
       nextTime++;
     }
-    
+
     const newBlock = {
       id: `${selectedUser}-${Date.now()}`,
       time: nextTime,
@@ -70,6 +75,25 @@ const RoutineEditor = () => {
     const newSchedule = localSchedule.filter((_, i) => i !== index);
     setLocalSchedule(newSchedule);
     addToast('Bloco removido', 'success');
+  };
+
+  const duplicateBlock = (index: number) => {
+    const blockToCopy = localSchedule[index];
+    const newBlock = {
+      ...blockToCopy,
+      id: `${selectedUser}-${Date.now()}-copy`,
+      label: `${blockToCopy.label} (Cópia)`,
+      time: blockToCopy.type === 'break' ? blockToCopy.time : blockToCopy.time // Keep same time, user adjusts
+    };
+
+    // Insert after the original
+    const newSchedule = [...localSchedule];
+    newSchedule.splice(index + 1, 0, newBlock);
+
+    setLocalSchedule(newSchedule);
+    // Auto-expand the new block
+    setExpandedBlocks(prev => ({ ...prev, [newBlock.id]: true }));
+    addToast('Bloco duplicado com sucesso', 'success');
   };
 
   const addTask = (blockIndex: number) => {
@@ -183,11 +207,10 @@ const RoutineEditor = () => {
           <button
             key={username}
             onClick={() => setSelectedUser(username)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
-              selectedUser === username
-                ? 'bg-primary text-primary-foreground shadow-lg'
-                : 'glass hover:bg-muted'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${selectedUser === username
+              ? 'bg-primary text-primary-foreground shadow-lg'
+              : 'glass hover:bg-muted'
+              }`}
           >
             <span className="text-lg">{profile.avatar}</span>
             <span className="font-medium">{profile.name}</span>
@@ -198,125 +221,189 @@ const RoutineEditor = () => {
       {/* Schedule Blocks */}
       <div className="space-y-4">
         {localSchedule.map((block, blockIndex) => {
-          const isLunchBlock = block.time === 12 || (block as any).isLunchBreak || 
+          const isLunchBlock = block.time === 12 || (block as any).isLunchBreak ||
             block.tasks.some(t => t.toLowerCase().includes('almoço') || t.toLowerCase().includes('intervalo'));
-          
-          return (
-          <GlassCard 
-            key={block.id} 
-            className={`animate-slideUp ${isLunchBlock ? 'relative overflow-hidden border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent' : ''}`}
-          >
-              <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex gap-2 items-center mb-2">
-                  <select
-                    value={block.time}
-                    onChange={(e) => {
-                      const newSchedule = [...localSchedule];
-                      const newTime = parseInt(e.target.value);
-                      newSchedule[blockIndex].time = newTime;
-                      newSchedule[blockIndex].label = `${String(newTime).padStart(2, '0')}:00 - ${String(newTime + 1).padStart(2, '0')}:00`;
-                      setLocalSchedule(newSchedule);
-                    }}
-                    className="px-3 py-1 rounded-lg bg-muted border border-border text-sm font-bold"
-                  >
-                    {Array.from({ length: 13 }, (_, i) => i + 7).map((hour) => (
-                      <option key={hour} value={hour}>
-                        {String(hour).padStart(2, '0')}:00
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    value={block.label}
-                    onChange={(e) => {
-                      const newSchedule = [...localSchedule];
-                      newSchedule[blockIndex].label = e.target.value;
-                      setLocalSchedule(newSchedule);
-                    }}
-                    className="flex-1 text-xl font-bold bg-transparent border-none focus:outline-none"
-                  />
-                </div>
-                <div className="flex gap-2 mt-2 flex-wrap">
-                  <select
-                    value={block.priority}
-                    onChange={(e) => {
-                      const newSchedule = [...localSchedule];
-                      newSchedule[blockIndex].priority = e.target.value as 'high' | 'medium';
-                      setLocalSchedule(newSchedule);
-                    }}
-                    className="px-3 py-1 rounded-lg bg-muted border border-border text-sm"
-                  >
-                    <option value="high">Alta Prioridade</option>
-                    <option value="medium">Média Prioridade</option>
-                  </select>
-                  <select
-                    value={block.category}
-                    onChange={(e) => {
-                      const newSchedule = [...localSchedule];
-                      newSchedule[blockIndex].category = e.target.value as any;
-                      setLocalSchedule(newSchedule);
-                    }}
-                    className="px-3 py-1 rounded-lg bg-muted border border-border text-sm"
-                  >
-                    <option value="sistema">Sistema</option>
-                    <option value="monitoramento">Monitoramento</option>
-                    <option value="organização">Organização</option>
-                    <option value="comunicação">Comunicação</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    if (!selectedUser) return;
-                    updateSchedule(selectedUser, localSchedule, { preserveDays: preserveEnabled ? preserveDays : 0 });
-                    addToast('Bloco salvo', 'success');
-                  }}
-                >
-                  Salvar
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => removeBlock(blockIndex)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
 
-            <div className="space-y-2 mb-4">
-              {block.tasks.map((task, taskIndex) => (
-                <div key={taskIndex} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={task}
-                    onChange={(e) => updateTask(blockIndex, taskIndex, e.target.value)}
-                    className="flex-1 px-4 py-2 rounded-xl bg-muted border border-border focus:ring-2 focus:ring-primary focus:outline-none"
-                  />
+          const isExpanded = expandedBlocks[block.id];
+
+          return (
+            <GlassCard
+              key={block.id}
+              className={`animate-slideUp transition-all duration-300 ${isLunchBlock ? 'relative overflow-hidden border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent' : ''}`}
+            >
+              {/* Header / Summary Row */}
+              <div className="flex items-center justify-between gap-4 p-2 -m-2 rounded-lg hover:bg-muted/30 cursor-pointer" onClick={() => toggleBlock(block.id)}>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-muted rounded-md cursor-grab active:cursor-grabbing text-muted-foreground">
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                  <div className={`text-lg font-bold ${block.priority === 'high' ? 'text-red-500' : (block.priority === 'low' ? 'text-green-500' : 'text-primary')}`}>
+                    {String(block.time).padStart(2, '0')}:00
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold">{block.label}</span>
+                    <span className="text-xs text-muted-foreground">{block.tasks.length} tarefas • {block.category}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeTask(blockIndex, taskIndex)}
+                    onClick={(e) => { e.stopPropagation(); duplicateBlock(blockIndex); }}
+                    title="Duplicar Bloco"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-red-500"
+                    onClick={(e) => { e.stopPropagation(); removeBlock(blockIndex); }}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
+                  <div className="p-1">
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => addTask(blockIndex)}
-            >
-              <Plus className="w-4 h-4" />
-              Adicionar Tarefa
-            </Button>
-          </GlassCard>
+              {/* Collapsible Content */}
+              {isExpanded && (
+                <div className="mt-6 pt-6 border-t border-border/50 space-y-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex-1 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase text-muted-foreground">Horário Início</label>
+                          <select
+                            value={block.time}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const newSchedule = [...localSchedule];
+                              const newTime = parseInt(e.target.value);
+                              newSchedule[blockIndex].time = newTime;
+                              newSchedule[blockIndex].label = `${String(newTime).padStart(2, '0')}:00 - ${String(newTime + 1).padStart(2, '0')}:00`;
+                              setLocalSchedule(newSchedule);
+                            }}
+                            className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-sm font-bold"
+                          >
+                            {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                              <option key={hour} value={hour}>
+                                {String(hour).padStart(2, '0')}:00
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase text-muted-foreground">Rótulo Visual</label>
+                          <input
+                            type="text"
+                            value={block.label}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const newSchedule = [...localSchedule];
+                              newSchedule[blockIndex].label = e.target.value;
+                              setLocalSchedule(newSchedule);
+                            }}
+                            className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-sm font-bold focus:ring-2 focus:ring-primary focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-2">
+                        <select
+                          value={block.priority}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const newSchedule = [...localSchedule];
+                            newSchedule[blockIndex].priority = e.target.value as 'high' | 'medium' | 'low';
+                            setLocalSchedule(newSchedule);
+                          }}
+                          className="px-3 py-2 rounded-lg bg-muted border border-border text-sm w-full"
+                        >
+                          <option value="high">Alta Prioridade 🔴</option>
+                          <option value="medium">Média Prioridade 🟡</option>
+                          <option value="low">Baixa Prioridade 🟢</option>
+                        </select>
+                        <select
+                          value={block.category}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const newSchedule = [...localSchedule];
+                            newSchedule[blockIndex].category = e.target.value as any;
+                            setLocalSchedule(newSchedule);
+                          }}
+                          className="px-3 py-2 rounded-lg bg-muted border border-border text-sm w-full"
+                        >
+                          <option value="sistema">Sistema</option>
+                          <option value="monitoramento">Monitoramento</option>
+                          <option value="organização">Organização</option>
+                          <option value="comunicação">Comunicação</option>
+                          <option value="manutenção">Manutenção</option>
+                          <option value="segurança">Segurança</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          if (!selectedUser) return;
+                          updateSchedule(selectedUser, localSchedule, { preserveDays: preserveEnabled ? preserveDays : 0 });
+                          addToast('Bloco salvo individualmente', 'success');
+                        }}
+                      >
+                        Salvar Alterações
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground flex items-center justify-between">
+                      Checklist de Tarefas
+                      <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{block.tasks.length} itens</span>
+                    </label>
+                    {block.tasks.map((task, taskIndex) => (
+                      <div key={taskIndex} className="flex gap-2 group">
+                        <div className="p-2 text-muted-foreground">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-2.5" />
+                        </div>
+                        <input
+                          type="text"
+                          value={task}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => updateTask(blockIndex, taskIndex, e.target.value)}
+                          className="flex-1 px-4 py-2 rounded-xl bg-muted/50 border border-border/50 focus:bg-background focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                          placeholder="Descreva a tarefa..."
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeTask(blockIndex, taskIndex)}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full mt-2 border-dashed border-2 bg-transparent hover:bg-muted"
+                      onClick={() => addTask(blockIndex)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar nova tarefa
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </GlassCard>
           );
         })}
 

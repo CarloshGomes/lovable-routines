@@ -4,6 +4,7 @@ import { Modal } from '@/components/Modal';
 import { Moon, Sun, ShieldCheck, UserCircle2, ArrowRight, Lock, Fingerprint, Sparkles, Activity, Eye, EyeOff } from 'lucide-react';
 import logoImage from '@/assets/logo.svg';
 import { useLoginController } from '@/hooks/useLoginController';
+import { SupervisorLogin } from '@/components/auth/SupervisorLogin';
 
 const Login = () => {
   const { theme, toggleTheme } = useTheme();
@@ -26,7 +27,8 @@ const Login = () => {
     setShowSupervisorPin,
     handleOperatorClick,
     handleOperatorPinSubmit,
-    handleSupervisorAccess
+    handleSupervisorAccess,
+    verifySupervisor
   } = useLoginController();
 
   // Show loading state while data is being fetched
@@ -43,7 +45,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden bg-background">
-      {/* ... (Background code unchanged) ... */}
+      {/* Premium Animated Background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl animate-float opacity-60" />
@@ -258,49 +260,14 @@ const Login = () => {
           setShowPinModal(false);
           setPin('');
         }}
-        title="Acesso Supervisor"
+        title=""
         size="sm"
+        className="bg-transparent border-0 shadow-none p-0"
       >
-        <div className="space-y-6">
-          <div className="flex flex-col items-center text-center p-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/30 mb-4">
-              <ShieldCheck className="w-8 h-8 text-white" />
-            </div>
-            <p className="text-muted-foreground">Insira o PIN de supervisor para continuar</p>
-          </div>
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-foreground">PIN de Acesso</label>
-            <div className="relative">
-              <input
-                type={showSupervisorPin ? "text" : "password"}
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSupervisorAccess()}
-                className="w-full px-5 py-4 pr-14 rounded-xl bg-muted/50 border border-border focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none text-center text-2xl tracking-[0.5em] font-mono transition-all duration-200"
-                placeholder="••••"
-                maxLength={10}
-                autoFocus
-                disabled={isLoggingIn}
-              />
-              <button
-                type="button"
-                onClick={() => setShowSupervisorPin(!showSupervisorPin)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
-              >
-                {showSupervisorPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => setShowPinModal(false)} className="flex-1" disabled={isLoggingIn}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSupervisorAccess} className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0" disabled={isLoggingIn}>
-              {isLoggingIn ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Fingerprint className="w-4 h-4" />}
-              {isLoggingIn ? 'Verificando...' : 'Acessar'}
-            </Button>
-          </div>
-        </div>
+        <SupervisorLogin
+          onValidate={verifySupervisor}
+          onSuccess={() => setShowPinModal(false)}
+        />
       </Modal>
     </div>
   );

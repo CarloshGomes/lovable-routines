@@ -4,7 +4,6 @@ import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/Button';
-import { SpotlightCard } from '@/components/SpotlightCard';
 import { Greeting } from '@/components/Greeting';
 import {
   LogOut, HelpCircle, Clock, Sun, Moon,
@@ -21,6 +20,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { CelebrationModal } from '@/components/CelebrationModal';
 import { OperatorAnalytics } from '@/components/operator/OperatorAnalytics';
+import { RoutineCard, RoutineBlock } from '@/components/operator/RoutineCard';
 import { SecuritySetupModal } from '@/components/SecuritySetupModal';
 
 const Operator = () => {
@@ -200,13 +200,14 @@ const Operator = () => {
     const isCompleted = hasTasks && tracking && tracking.tasks.length === block.tasks.length;
 
     // Blocos completos sempre aparecem como completos
-    if (isCompleted) return 'completed';
+    if (isCompleted) return 'done';
 
     // Blocos sem tarefas (intervalos) se auto-completam quando o horário passa
-    if (!hasTasks && time < currentHour) return 'completed';
+    if (!hasTasks && time < currentHour) return 'done';
 
     // Bloco atual
     if (time === currentHour) return 'current';
+
 
     // Blocos com tarefas incompletas no passado estão atrasados
     if (hasTasks && time < currentHour) return 'late';
@@ -264,6 +265,7 @@ const Operator = () => {
                 size="sm"
                 onClick={toggleTheme}
                 className="hover:bg-primary/10"
+                aria-label="Alternar tema"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
@@ -272,6 +274,7 @@ const Operator = () => {
                 size="sm"
                 onClick={() => setShowDashboard(true)}
                 className="hover:bg-primary/10"
+                aria-label="Meu Desempenho"
               >
                 <LayoutDashboard className="w-4 h-4" />
                 <span className="hidden sm:inline">Meu Desempenho</span>
@@ -280,6 +283,7 @@ const Operator = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowHelp(true)}
+                aria-label="Central de Ajuda"
               >
                 <HelpCircle className="w-4 h-4" />
                 <span className="hidden sm:inline">Ajuda</span>
@@ -289,6 +293,7 @@ const Operator = () => {
                 size="sm"
                 onClick={async () => { await logout(); navigate('/'); }}
                 className="shadow-lg shadow-danger/20"
+                aria-label="Sair do sistema"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Sair</span>
@@ -347,185 +352,43 @@ const Operator = () => {
       </div>
 
       {/* Schedule Blocks */}
-      <div className="container mx-auto px-4 space-y-12">
+      <div className="container mx-auto px-4 space-y-6">
         {filteredSchedule.map((block) => {
           const status = getBlockStatus(block.id, block.time);
           const tracking = userTracking[block.id] || { tasks: [], report: '', reportSent: false, timestamp: '' };
-          const blockProgress = block.tasks.length > 0 ? (tracking.tasks.length / block.tasks.length) * 100 : 0;
 
-          const isLunchBlock = block.time === 12 ||
-            block.tasks.some(t => t.toLowerCase().includes('almoço') || t.toLowerCase().includes('intervalo'));
+          const routineTasks = block.tasks.map((taskLabel, index) => ({
+            id: index.toString(),
+            label: taskLabel,
+            completed: tracking.tasks.includes(index)
+          }));
 
-          const statusStyles = {
-            current: 'border-2 border-primary ring-2 ring-primary/30 shadow-xl shadow-primary/10',
-            late: 'border-2 border-danger ring-2 ring-danger/30',
-            completed: 'border-none bg-success/5',
-            future: 'border-none opacity-70',
+          const routineBlock: RoutineBlock = {
+            id: block.id,
+            time: `${block.time.toString().padStart(2, '0')}:00`,
+            label: block.label,
+            priority: block.priority as any,
+            category: block.category || 'Geral',
+            tasks: routineTasks,
+            status: status as any
           };
 
-          const lunchStyles = isLunchBlock
-            ? 'border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent'
-            : '';
-
           return (
-            <SpotlightCard
+            <RoutineCard
               key={block.id}
-              className={`transition-all duration-300 shadow-sm ${statusStyles[status]} ${lunchStyles} bg-card backdrop-blur-none bg-opacity-100 hover:shadow-md p-8`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold flex items-center gap-2 flex-wrap">
-                    {block.label}
-                    {status === 'current' && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-lg border border-primary/20">
-                        <Zap className="w-3 h-3" />
-                        AGORA
-                      </span>
-                    )}
-                    {status === 'late' && (
-                      <span className="px-2.5 py-1 bg-danger text-danger-foreground text-xs font-semibold rounded-lg animate-pulse">
-                        ATRASADO
-                      </span>
-                    )}
-
-                  </h3>
-                  {block.priority && (
-                    <span className={`text-xs font-medium ${block.priority === 'high' ? 'text-danger' : 'text-warning'}`}>
-                      Prioridade: {block.priority === 'high' ? 'Alta' : 'Média'}
-                    </span>
-                  )}
-                </div>
-                <div className="relative w-16 h-16">
-                  <svg className="transform -rotate-90 w-16 h-16">
-                    <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="none" className="text-muted" />
-                    <circle
-                      cx="32"
-                      cy="32"
-                      r="28"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                      className="text-primary transition-all duration-500"
-                      strokeDasharray={`${2 * Math.PI * 28}`}
-                      strokeDashoffset={`${2 * Math.PI * 28 * (1 - blockProgress / 100)}`}
-                    />
-                  </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
-                    {Math.round(blockProgress)}%
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                {block.tasks.map((task, index) => {
-                  const taskKey = `${block.id}-task-${index}`;
-                  const isChecked = tracking.tasks.includes(index);
-                  return (
-                    <div
-                      key={taskKey}
-                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
-                    >
-                      <Checkbox
-                        id={taskKey}
-                        checked={Boolean(isChecked)}
-                        onCheckedChange={() => handleTaskToggle(block.id, index)}
-                        className="w-5 h-5 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                      />
-                      <label
-                        htmlFor={taskKey}
-                        className={`flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer ${isChecked ? 'line-through opacity-60' : ''}`}
-                      >
-                        {task}
-                      </label>
-                      {block.category && (
-                        <span className="text-[10px] px-2.5 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 rounded-full font-semibold">
-                          {block.category}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {status !== 'future' && (
-                <div className="space-y-3 pt-4 border-t border-border/50">
-                  <label className="block text-sm font-medium">Relatório / Retorno</label>
-                  <textarea
-                    value={reportsDraft[block.id] ?? tracking.report}
-                    onChange={(e) => handleReportChange(block.id, e.target.value)}
-                    disabled={tracking.reportSent}
-                    className="w-full px-4 py-3 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none resize-none transition-all duration-200"
-                    rows={3}
-                    placeholder="Descreva as atividades realizadas..."
-                  />
-                  {tracking.reportSent ? (
-                    <div className="flex items-center gap-2 text-sm text-success font-medium">
-                      <CheckCircle2 className="w-4 h-4" />
-                      Relatório enviado às {new Date(tracking.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  ) : (
-                    <Button size="sm" className="shadow-lg shadow-primary/20" onClick={() => handleReportSend(block.id)}>
-                      Enviar Relatório
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {/* Late Block Handling */}
-              {status === 'late' && !tracking.escalated && (
-                <div className="mt-4 p-4 rounded-xl bg-danger/5 border border-danger/20 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex items-center gap-2 mb-3 text-danger font-medium">
-                    <AlertTriangle className="w-5 h-5" />
-                    <span>Atenção: Atividade Atrasada</span>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <select
-                      className="flex-1 px-4 py-2 rounded-lg bg-background border border-danger/30 focus:border-danger focus:ring-2 focus:ring-danger/20 outline-none text-sm"
-                      onChange={(e) => e.target.value && handleDelayReport(block.id, e.target.value)}
-                      value=""
-                    >
-                      <option value="" disabled>Selecione o motivo do atraso...</option>
-                      <option value="high_demand">Alta demanda de chamados</option>
-                      <option value="system_slowness">Lentidão no sistema</option>
-                      <option value="external_factor">Fatores externos</option>
-                      <option value="break_adjustment">Ajuste de intervalo</option>
-                      <option value="other">Outro (Descrever no relatório)</option>
-                    </select>
-
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      className="whitespace-nowrap shadow-none border border-danger/50"
-                      onClick={() => handleDelayReport(block.id, 'impossible_to_complete', true)}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Marcar como Impossível
-                    </Button>
-                  </div>
-                  <p className="text-xs text-danger/70 mt-2">
-                    * Selecionar um motivo notificará automaticamente o supervisor.
-                  </p>
-                </div>
-              )}
-
-              {status === 'late' && tracking.escalated && (
-                <div className="mt-4 p-3 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-between">
-                  <span className="text-sm font-medium text-danger flex items-center gap-2">
-                    <Send className="w-4 h-4" />
-                    Supervisor notificado: {tracking.isImpossible ? 'Impossível realizar' : 'Atraso justificado'}
-                  </span>
-                  <span className="text-xs text-danger/80 bg-danger/10 px-2 py-1 rounded">
-                    {tracking.delayReason === 'high_demand' && 'Alta Demanda'}
-                    {tracking.delayReason === 'system_slowness' && 'Sistema Lento'}
-                    {tracking.delayReason === 'external_factor' && 'Externo'}
-                    {tracking.delayReason === 'break_adjustment' && 'Intervalo'}
-                    {tracking.delayReason === 'other' && 'Outro'}
-                    {tracking.delayReason === 'impossible_to_complete' && 'Cancelado'}
-                  </span>
-                </div>
-              )}
-            </SpotlightCard>
+              block={routineBlock}
+              onTaskToggle={(taskId) => handleTaskToggle(block.id, parseInt(taskId))}
+              noteValue={reportsDraft[block.id] ?? tracking.report ?? ''}
+              onNoteChange={(val) => handleReportChange(block.id, val)}
+              onSendReport={() => handleReportSend(block.id)}
+              isReportSent={tracking.reportSent}
+              timestamp={tracking.timestamp}
+              // Delay Handling
+              onDelayReport={(reason, isImpossible) => handleDelayReport(block.id, reason, isImpossible)}
+              isEscalated={tracking.escalated}
+              delayReason={tracking.delayReason}
+              isImpossible={tracking.isImpossible}
+            />
           );
         })}
       </div>
