@@ -15,6 +15,8 @@ export const useLoginController = () => {
     const [showOperatorPin, setShowOperatorPin] = useState(false);
     const [showSupervisorPin, setShowSupervisorPin] = useState(false);
 
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
     // Reset states when modals close
     useEffect(() => {
         if (!showPinModal && !showOperatorPinModal) {
@@ -24,52 +26,57 @@ export const useLoginController = () => {
         }
     }, [showPinModal, showOperatorPinModal]);
 
-    // Redirect if already logged in
+    // Redirect if already logged in (only if not verifying credentials)
     useEffect(() => {
-        if (!isLoading) {
+        if (!isLoading && !isLoggingIn) {
             if (isSupervisor) {
                 navigate('/supervisor');
             } else if (currentUser) {
                 navigate('/operator');
             }
         }
-    }, [isLoading, currentUser, isSupervisor, navigate]);
+    }, [isLoading, currentUser, isSupervisor, navigate, isLoggingIn]);
 
-    const handleOperatorClick = (username: string) => {
+    const handleOperatorClick = async (username: string) => {
         const profile = userProfiles[username];
         if (profile.pin) {
             setSelectedOperator(username);
             setShowOperatorPinModal(true);
         } else {
+            setIsLoggingIn(true);
+            // Simulate network/processing delay for better UX
+            await new Promise(resolve => setTimeout(resolve, 800));
             login(username);
             addToast(`Bem-vindo, ${profile.name}!`, 'success');
             navigate('/operator');
+            setIsLoggingIn(false);
         }
     };
 
-    const handleOperatorPinSubmit = () => {
+    const handleOperatorPinSubmit = async () => {
         if (selectedOperator && validateOperatorPin(selectedOperator, pin)) {
+            setIsLoggingIn(true);
+            await new Promise(resolve => setTimeout(resolve, 800));
             login(selectedOperator);
             addToast(`Bem-vindo, ${userProfiles[selectedOperator].name}!`, 'success');
             setShowOperatorPinModal(false);
             navigate('/operator');
+            setIsLoggingIn(false);
         } else {
             addToast('PIN incorreto', 'error');
             setPin('');
         }
     };
 
-    const handleSupervisorAccess = () => {
-        if (pin === supervisorPin) { // Note: using direct comparison as in original logic (Login.tsx L74), but AppContext has loginSupervisor(pin) which might be safer?
-            // Wait, AppContext.tsx L57: loginSupervisor(pin) actually uses the argument? 
-            // Let's check AppContext text again.
-            // AppContext L346: loginSupervisor = async () => {...} It DOES NOT take an arg in implementation shown in file read step 425.
-            // BUT Login.tsx L74 used: if (pin === supervisorPin) { loginSupervisor(); ... }
-            // So keeping logic as is: check variable then call function.
+    const handleSupervisorAccess = async () => {
+        if (pin === supervisorPin) {
+            setIsLoggingIn(true);
+            await new Promise(resolve => setTimeout(resolve, 800));
             loginSupervisor();
             setShowPinModal(false);
             addToast('Acesso supervisor concedido', 'success');
             navigate('/supervisor');
+            setIsLoggingIn(false);
         } else {
             addToast('PIN incorreto', 'error');
             setPin('');
@@ -79,6 +86,7 @@ export const useLoginController = () => {
     return {
         // State
         isLoading,
+        isLoggingIn,
         userProfiles,
         showPinModal,
         showOperatorPinModal,

@@ -120,9 +120,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return profile.pin === pin;
     };
 
+    // Session Persistence Logic
+    useEffect(() => {
+        const storedUser = localStorage.getItem('session_user');
+        const storedRole = localStorage.getItem('session_role');
+
+        if (storedRole === 'supervisor') {
+            setIsSupervisor(true);
+            setCurrentUser(null);
+        } else if (storedUser) {
+            setCurrentUser(storedUser);
+            setIsSupervisor(false);
+        }
+    }, []);
+
     const login = async (username: string) => {
         setCurrentUser(username);
         setIsSupervisor(false);
+        localStorage.setItem('session_user', username);
+        localStorage.removeItem('session_role');
 
         // Set heartbeat
         try {
@@ -141,6 +157,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const loginSupervisor = async () => {
         setIsSupervisor(true);
         setCurrentUser(null);
+        localStorage.setItem('session_role', 'supervisor');
+        localStorage.removeItem('session_user');
 
         await supabase.from('activity_logs').insert({
             username: 'supervisor',
@@ -168,6 +186,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setCurrentUser(null);
         setIsSupervisor(false);
+        localStorage.removeItem('session_user');
+        localStorage.removeItem('session_role');
     };
 
     const updateProfile = async (username: string, profile: UserProfile) => {

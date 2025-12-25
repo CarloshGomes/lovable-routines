@@ -20,6 +20,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { CelebrationModal } from '@/components/CelebrationModal';
 import { OperatorAnalytics } from '@/components/operator/OperatorAnalytics';
+import { SecuritySetupModal } from '@/components/SecuritySetupModal';
 
 const Operator = () => {
   const navigate = useNavigate();
@@ -187,6 +188,7 @@ const Operator = () => {
 
   return (
     <div className="min-h-screen pb-32 bg-background relative overflow-hidden">
+      <SecuritySetupModal />
       {/* Premium Animated Background */}
       <div className="absolute inset-0 -z-10">
         {/* Base gradient */}

@@ -10,6 +10,7 @@ import TeamManager from '@/components/supervisor/TeamManager';
 import RoutineEditor from '@/components/supervisor/RoutineEditor';
 import SettingsPanel from '@/components/supervisor/SettingsPanel';
 import { AnalyticsView } from '@/components/supervisor/AnalyticsView';
+import { SecuritySetupModal } from '@/components/SecuritySetupModal';
 import { SUPERVISOR_TABS, SupervisorTabId } from '@/constants/supervisor';
 
 type Tab = SupervisorTabId;
@@ -24,6 +25,7 @@ const Supervisor = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SecuritySetupModal />
       {/* Background */}
       {/* Premium Animated Background */}
       <div className="absolute inset-0 -z-10">
