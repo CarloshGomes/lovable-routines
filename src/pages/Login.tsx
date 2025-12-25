@@ -1,35 +1,32 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useToast } from '@/contexts/ToastContext';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { Moon, Sun, ShieldCheck, UserCircle2, ArrowRight, Lock, Fingerprint, Sparkles, Activity, Eye, EyeOff } from 'lucide-react';
 import logoImage from '@/assets/logo.svg';
+import { useLoginController } from '@/hooks/useLoginController';
 
 const Login = () => {
-  const navigate = useNavigate();
-  const { userProfiles, supervisorPin, login, loginSupervisor, validateOperatorPin, isLoading, currentUser, isSupervisor } = useApp();
   const { theme, toggleTheme } = useTheme();
-  const { addToast } = useToast();
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [showOperatorPinModal, setShowOperatorPinModal] = useState(false);
-  const [selectedOperator, setSelectedOperator] = useState<string | null>(null);
-  const [pin, setPin] = useState('');
-  const [showOperatorPin, setShowOperatorPin] = useState(false);
-  const [showSupervisorPin, setShowSupervisorPin] = useState(false);
 
-  // If already logged in, redirect to appropriate page
-  useEffect(() => {
-    if (!isLoading) {
-      if (isSupervisor) {
-        navigate('/supervisor');
-      } else if (currentUser) {
-        navigate('/operator');
-      }
-    }
-  }, [isLoading, currentUser, isSupervisor, navigate]);
+  const {
+    isLoading,
+    userProfiles,
+    showPinModal,
+    showOperatorPinModal,
+    selectedOperator,
+    pin,
+    showOperatorPin,
+    showSupervisorPin,
+    setShowPinModal,
+    setShowOperatorPinModal,
+    setSelectedOperator,
+    setPin,
+    setShowOperatorPin,
+    setShowSupervisorPin,
+    handleOperatorClick,
+    handleOperatorPinSubmit,
+    handleSupervisorAccess
+  } = useLoginController();
 
   // Show loading state while data is being fetched
   if (isLoading) {
@@ -43,59 +40,21 @@ const Login = () => {
     );
   }
 
-  const handleOperatorClick = (username: string) => {
-    const profile = userProfiles[username];
-    if (profile.pin) {
-      setSelectedOperator(username);
-      setPin('');
-      setShowOperatorPinModal(true);
-    } else {
-      login(username);
-      addToast(`Bem-vindo, ${profile.name}!`, 'success');
-      navigate('/operator');
-    }
-  };
-
-  const handleOperatorPinSubmit = () => {
-    if (!selectedOperator) return;
-    
-    if (validateOperatorPin(selectedOperator, pin)) {
-      login(selectedOperator);
-      addToast(`Bem-vindo, ${userProfiles[selectedOperator].name}!`, 'success');
-      setShowOperatorPinModal(false);
-      navigate('/operator');
-    } else {
-      addToast('PIN incorreto', 'error');
-      setPin('');
-    }
-  };
-
-  const handleSupervisorAccess = () => {
-    if (pin === supervisorPin) {
-      loginSupervisor();
-      addToast('Acesso supervisor concedido', 'success');
-      navigate('/supervisor');
-    } else {
-      addToast('PIN incorreto', 'error');
-      setPin('');
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden bg-background">
       {/* Premium Animated Background */}
       <div className="absolute inset-0 -z-10">
         {/* Base gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        
+
         {/* Animated gradient orbs */}
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl animate-float opacity-60" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-accent/20 to-transparent rounded-full blur-3xl animate-float opacity-50" style={{ animationDelay: '-3s' }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
-        
+
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:72px_72px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]" />
-        
+
         {/* Noise texture */}
         <div className="absolute inset-0 opacity-[0.015] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')]" />
       </div>
@@ -119,9 +78,9 @@ const Login = () => {
           {/* Logo */}
           <div className="relative inline-flex justify-center mb-8">
             <div className="relative">
-              <img 
-                src={logoImage} 
-                alt="Logo" 
+              <img
+                src={logoImage}
+                alt="Logo"
                 className="w-20 h-20 sm:w-24 sm:h-24 object-contain relative z-10 drop-shadow-2xl"
               />
               {/* Glow effect */}
@@ -140,12 +99,12 @@ const Login = () => {
                 <Sparkles className="absolute -top-2 -right-6 w-5 h-5 text-primary animate-pulse" />
               </span>
             </h1>
-            
+
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
               <Activity className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">Sistema de Gestão Operacional</span>
             </div>
-            
+
             <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto">
               Gestão operacional inteligente para sua equipe
             </p>
@@ -180,7 +139,7 @@ const Login = () => {
               >
                 {/* Hover gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
+
                 <div className="flex items-center justify-between relative z-10">
                   <div className="flex items-center gap-4">
                     {/* Avatar */}
@@ -191,7 +150,7 @@ const Login = () => {
                       {/* Online indicator */}
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-card" />
                     </div>
-                    
+
                     {/* Info */}
                     <div>
                       <h3 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">
@@ -206,7 +165,7 @@ const Login = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Arrow */}
                   <div className="p-2 rounded-xl bg-muted group-hover:bg-primary group-hover:shadow-lg transition-all duration-300">
                     <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary-foreground group-hover:translate-x-0.5 transition-all duration-300" />
@@ -235,7 +194,7 @@ const Login = () => {
           >
             {/* Animated gradient */}
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/10 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            
+
             <div className="flex items-center justify-between relative z-10">
               <div className="flex items-center gap-4">
                 {/* Icon container */}
@@ -246,7 +205,7 @@ const Login = () => {
                   {/* Glow */}
                   <div className="absolute inset-0 bg-indigo-500/30 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
-                
+
                 {/* Text */}
                 <div className="text-left">
                   <h3 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-indigo-400 transition-colors duration-300">
@@ -255,7 +214,7 @@ const Login = () => {
                   <p className="text-sm text-muted-foreground">Acesso com PIN de segurança</p>
                 </div>
               </div>
-              
+
               {/* Fingerprint icon */}
               <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:border-indigo-500 transition-all duration-300">
                 <Fingerprint className="w-6 h-6 text-indigo-400 group-hover:text-white transition-colors duration-300" />
@@ -293,7 +252,7 @@ const Login = () => {
               </div>
             </div>
           )}
-          
+
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">Digite seu PIN</label>
             <div className="relative">
@@ -316,7 +275,7 @@ const Login = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setShowOperatorPinModal(false)} className="flex-1">
               Cancelar
@@ -346,7 +305,7 @@ const Login = () => {
             </div>
             <p className="text-muted-foreground">Insira o PIN de supervisor para continuar</p>
           </div>
-          
+
           <div className="space-y-3">
             <label className="block text-sm font-medium text-foreground">PIN de Acesso</label>
             <div className="relative">
@@ -369,7 +328,7 @@ const Login = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setShowPinModal(false)} className="flex-1">
               Cancelar

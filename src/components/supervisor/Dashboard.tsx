@@ -24,7 +24,7 @@ import { TasksCompletedModal } from './modals/TasksCompletedModal';
 import { ReportsModal } from './modals/ReportsModal';
 import { ActiveOperatorsModal } from './modals/ActiveOperatorsModal';
 import { toast } from 'sonner';
-import { GlassCard } from '@/components/GlassCard';
+import { SpotlightCard } from '@/components/SpotlightCard';
 
 // Extracted Components
 import { StatsOverview } from './dashboard/StatsOverview';
@@ -325,21 +325,21 @@ const Dashboard = () => {
 
       {/* Late Alert */}
       {lateOperators.length > 0 && (
-        <GlassCard className="bg-danger/10 border-danger animate-pulseRed">
+        <SpotlightCard className="bg-danger/10 border-danger animate-pulseRed" spotlightColor="rgba(239, 68, 68, 0.2)">
           <div className="flex items-start gap-4">
             <AlertTriangle className="w-6 h-6 text-danger flex-shrink-0 mt-1" />
             <div>
               <h3 className="font-bold text-danger mb-2">Operadores com Tarefas Atrasadas</h3>
               <div className="space-y-1">
                 {lateOperators.map(([username]) => (
-                  <div key={username} className="text-sm">
+                  <div key={username} className="text-sm text-danger/80">
                     {userProfiles[username].name} - {userProfiles[username].role}
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </GlassCard>
+        </SpotlightCard>
       )}
 
       {/* Content based on view mode */}

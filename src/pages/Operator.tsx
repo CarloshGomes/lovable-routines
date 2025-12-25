@@ -4,7 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/Button';
-import { GlassCard } from '@/components/GlassCard';
+import { SpotlightCard } from '@/components/SpotlightCard';
 import { Greeting } from '@/components/Greeting';
 import {
   LogOut, HelpCircle, Clock, Sun, Moon,
@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CelebrationModal } from '@/components/CelebrationModal';
 import { OperatorAnalytics } from '@/components/operator/OperatorAnalytics';
 
@@ -185,12 +186,21 @@ const Operator = () => {
 
 
   return (
-    <div className="min-h-screen pb-32 bg-background">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10">
+    <div className="min-h-screen pb-32 bg-background relative overflow-hidden">
+      {/* Premium Animated Background */}
+      <div className="absolute inset-0 -z-10">
+        {/* Base gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        <div className="absolute top-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-float opacity-60" />
-        <div className="absolute bottom-40 left-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float opacity-50" style={{ animationDelay: '-3s' }} />
+
+        {/* Animated gradient orbs */}
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl animate-float opacity-60" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-accent/20 to-transparent rounded-full blur-3xl animate-float opacity-50" style={{ animationDelay: '-3s' }} />
+
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:72px_72px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]" />
+
+        {/* Noise texture */}
+        <div className="absolute inset-0 opacity-[0.015] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')]" />
       </div>
 
       {/* Premium Header */}
@@ -305,7 +315,7 @@ const Operator = () => {
       </div>
 
       {/* Schedule Blocks */}
-      <div className="container mx-auto px-4 space-y-4">
+      <div className="container mx-auto px-4 space-y-12">
         {filteredSchedule.map((block) => {
           const status = getBlockStatus(block.id, block.time);
           const tracking = userTracking[block.id] || { tasks: [], report: '', reportSent: false, timestamp: '' };
@@ -315,10 +325,10 @@ const Operator = () => {
             block.tasks.some(t => t.toLowerCase().includes('almoço') || t.toLowerCase().includes('intervalo'));
 
           const statusStyles = {
-            current: 'border-primary ring-2 ring-primary/30 shadow-xl shadow-primary/10',
-            late: 'border-danger ring-2 ring-danger/30',
-            completed: 'border-success/50 bg-success/5',
-            future: 'opacity-70',
+            current: 'border-2 border-primary ring-2 ring-primary/30 shadow-xl shadow-primary/10',
+            late: 'border-2 border-danger ring-2 ring-danger/30',
+            completed: 'border-none bg-success/5',
+            future: 'border-none opacity-70',
           };
 
           const lunchStyles = isLunchBlock
@@ -326,9 +336,9 @@ const Operator = () => {
             : '';
 
           return (
-            <GlassCard
+            <SpotlightCard
               key={block.id}
-              className={`transition-all duration-300 ${statusStyles[status]} ${lunchStyles}`}
+              className={`transition-all duration-300 shadow-sm ${statusStyles[status]} ${lunchStyles} bg-card backdrop-blur-none bg-opacity-100 hover:shadow-md p-8`}
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -345,11 +355,7 @@ const Operator = () => {
                         ATRASADO
                       </span>
                     )}
-                    {isLunchBlock && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-lg border border-amber-500/30">
-                        🍽️ ALMOÇO
-                      </span>
-                    )}
+
                   </h3>
                   {block.priority && (
                     <span className={`text-xs font-medium ${block.priority === 'high' ? 'text-danger' : 'text-warning'}`}>
@@ -385,21 +391,22 @@ const Operator = () => {
                   return (
                     <div
                       key={taskKey}
-                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors group"
                     >
-                      <input
+                      <Checkbox
                         id={taskKey}
-                        name={`${block.id}-task`}
-                        type="checkbox"
                         checked={Boolean(isChecked)}
-                        onChange={() => handleTaskToggle(block.id, index)}
-                        className="mt-1 w-5 h-5 rounded-md border-2 border-primary text-primary focus:ring-2 focus:ring-primary accent-primary"
+                        onCheckedChange={() => handleTaskToggle(block.id, index)}
+                        className="w-5 h-5 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                       />
-                      <label htmlFor={taskKey} className={`flex-1 ${isChecked ? 'line-through opacity-60' : ''}`}>
+                      <label
+                        htmlFor={taskKey}
+                        className={`flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer ${isChecked ? 'line-through opacity-60' : ''}`}
+                      >
                         {task}
                       </label>
                       {block.category && (
-                        <span className="text-xs px-2 py-1 bg-accent/20 text-accent-foreground rounded-lg">
+                        <span className="text-[10px] px-2.5 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 rounded-full font-semibold">
                           {block.category}
                         </span>
                       )}
@@ -431,7 +438,7 @@ const Operator = () => {
                   )}
                 </div>
               )}
-            </GlassCard>
+            </SpotlightCard>
           );
         })}
       </div>
