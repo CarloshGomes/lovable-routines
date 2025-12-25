@@ -18,11 +18,28 @@ import {
     AreaChart,
     Area
 } from 'recharts';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from 'react';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
 
 export const AnalyticsView = () => {
     const { userProfiles, schedules, trackingData } = useApp();
+    const [activeInsight, setActiveInsight] = useState<'team' | 'performer' | 'priority' | 'weekly_progress' | null>(null);
 
     // 1. Calculate Weekly Progress (Last 7 Days)
     const weeklyData = useMemo(() => {
@@ -96,7 +113,8 @@ export const AnalyticsView = () => {
                 name: profile.name.split(' ')[0], // First name only
                 fullName: profile.name,
                 score,
-                tasks: completedTasks
+                tasks: completedTasks,
+                totalScheduled: totalTasks
             };
         }).sort((a, b) => b.score - a.score);
     }, [userProfiles, schedules, trackingData, weeklyData]);
@@ -126,6 +144,77 @@ export const AnalyticsView = () => {
                 color: name === 'Alta Prioridade' ? '#EF4444' : name === 'Média Prioridade' ? '#F59E0B' : '#3B82F6'
             }));
     }, [schedules]);
+
+    // 4. Calculate High Priority Tasks Details
+    const highPriorityTasks = useMemo(() => {
+        const tasks: { taskName: string; operator: string; status: 'completed' | 'pending'; time?: string }[] = [];
+        const today = new Date().toISOString().split('T')[0];
+
+        Object.entries(schedules).forEach(([username, userSchedule]) => {
+            const profile = userProfiles[username];
+            if (!profile) return;
+
+            userSchedule.forEach(block => {
+                if (block.priority === 'high') {
+                    // Check completion for today
+                    const key = `${today}-${block.id}`;
+                    const completedIndices = trackingData[username]?.[key]?.tasks || [];
+
+                    block.tasks.forEach((taskName, index) => {
+                        tasks.push({
+                            taskName: typeof taskName === 'string' ? taskName : 'Tarefa',
+                            operator: profile.name,
+                            status: completedIndices.includes(index) ? 'completed' : 'pending',
+                            time: `${block.time}:00`
+                        });
+                    });
+                }
+            });
+        });
+        return tasks;
+    }, [schedules, userProfiles, trackingData]);
+
+    // 5. Calculate Top Performer Daily Stats (Last 7 Days)
+    const performerDailyStats = useMemo(() => {
+        if (!operatorPerformance.length) return [];
+        const topPerformer = operatorPerformance[0];
+        // Find their username by matching fullName (a bit risky but usually fine) or pass username in operatorPerformance
+        // Let's modify operatorPerformance to pass username to be safe.
+        // Wait, I can't easily modify the chunk above since I already wrote it. 
+        // I'll just search by fullName since it's cleaner to edit *this* chunk.
+        const username = Object.keys(userProfiles).find(u => userProfiles[u].name === topPerformer.fullName);
+        if (!username) return [];
+
+        const days = [];
+        const today = new Date();
+        const userSchedule = schedules[username] || [];
+        const userTracking = trackingData[username] || {};
+        const totalScheduledPerDay = userSchedule.reduce((acc, b) => acc + b.tasks.length, 0);
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const dayName = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+
+            let completedCount = 0;
+            userSchedule.forEach(block => {
+                const key = `${dateStr}-${block.id}`;
+                if (userTracking[key]) {
+                    completedCount += userTracking[key].tasks.length;
+                }
+            });
+
+            days.push({
+                date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                dayName: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+                completed: completedCount,
+                total: totalScheduledPerDay,
+                percentage: totalScheduledPerDay > 0 ? Math.round((completedCount / totalScheduledPerDay) * 100) : 0
+            });
+        }
+        return days;
+    }, [operatorPerformance, userProfiles, schedules, trackingData]);
 
     // Top Stats Calculations
     const currentWeekAvg = Math.round(weeklyData.reduce((acc, d) => acc + d.completion, 0) / 7);
@@ -176,9 +265,15 @@ export const AnalyticsView = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <GlassCard className="p-6">
+                <GlassCard
+                    className="p-6 cursor-pointer hover:border-primary/50 transition-colors group"
+                    onClick={() => setActiveInsight('weekly_progress')}
+                >
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold">Taxa de Conclusão (Últimos 7 dias)</h3>
+                        <div className="space-y-1">
+                            <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">Taxa de Conclusão (Últimos 7 dias)</h3>
+                            <p className="text-sm text-muted-foreground">Clique para ver detalhes diários</p>
+                        </div>
                         <TrendingUp className="w-5 h-5 text-primary" />
                     </div>
                     <div className="h-[300px] w-full">
@@ -202,8 +297,14 @@ export const AnalyticsView = () => {
                     </div>
                 </GlassCard>
 
-                <GlassCard className="p-6">
-                    <h3 className="text-lg font-semibold mb-6">Desempenho por Operador (7 dias)</h3>
+                <GlassCard
+                    className="p-6 cursor-pointer hover:border-primary/50 transition-colors group"
+                    onClick={() => setActiveInsight('team')}
+                >
+                    <div className="space-y-1 mb-6">
+                        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">Desempenho por Operador (7 dias)</h3>
+                        <p className="text-sm text-muted-foreground">Clique para ver ranking detalhado</p>
+                    </div>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={operatorPerformance} layout="vertical">
@@ -250,14 +351,20 @@ export const AnalyticsView = () => {
                 <GlassCard className="p-6 lg:col-span-2">
                     <h3 className="text-lg font-semibold mb-4">Insights da IA</h3>
                     <div className="space-y-4">
-                        <div className="flex gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                        <div
+                            onClick={() => setActiveInsight('team')}
+                            className="flex gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors"
+                        >
                             <div className="w-1 h-full bg-primary rounded-full" />
                             <p className="text-sm">
                                 A média de conclusão da equipe nesta semana é de <strong>{currentWeekAvg}%</strong>.
                             </p>
                         </div>
                         {operatorPerformance.length > 0 && (
-                            <div className="flex gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                            <div
+                                onClick={() => setActiveInsight('performer')}
+                                className="flex gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors"
+                            >
                                 <div className="w-1 h-full bg-primary rounded-full" />
                                 <p className="text-sm">
                                     O destaque da semana é <strong>{operatorPerformance[0].fullName}</strong> com <strong>{operatorPerformance[0].score}%</strong> de aproveitamento.
@@ -265,7 +372,10 @@ export const AnalyticsView = () => {
                             </div>
                         )}
                         {taskDistribution.find(t => t.name === 'Alta Prioridade') && (
-                            <div className="flex gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                            <div
+                                onClick={() => setActiveInsight('priority')}
+                                className="flex gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors"
+                            >
                                 <div className="w-1 h-full bg-primary rounded-full" />
                                 <p className="text-sm">
                                     Existem <strong>{taskDistribution.find(t => t.name === 'Alta Prioridade')?.value}</strong> subtarefas de alta prioridade agendadas no sistema.
@@ -275,6 +385,125 @@ export const AnalyticsView = () => {
                     </div>
                 </GlassCard>
             </div>
+
+            <Dialog open={!!activeInsight} onOpenChange={(open) => !open && setActiveInsight(null)}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {activeInsight === 'team' && "Desempenho da Equipe (Semana)"}
+                            {activeInsight === 'performer' && `Histórico: ${operatorPerformance[0]?.fullName}`}
+                            {activeInsight === 'priority' && "Tarefas de Alta Prioridade"}
+                            {activeInsight === 'weekly_progress' && "Evolução Semanal da Equipe"}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <ScrollArea className="max-h-[60vh]">
+                        {activeInsight === 'weekly_progress' && (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Dia</TableHead>
+                                        <TableHead className="text-right">Tarefas Realizadas</TableHead>
+                                        <TableHead className="text-right">Total Agendado</TableHead>
+                                        <TableHead className="text-right">Aproveitamento</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {weeklyData.slice().reverse().map((day, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell className="font-medium">{day.name} <span className="text-muted-foreground text-xs ml-1">({day.date})</span></TableCell>
+                                            <TableCell className="text-right">{day.completed}</TableCell>
+                                            <TableCell className="text-right">{day.scheduled}</TableCell>
+                                            <TableCell className="text-right">
+                                                <span className={`font-bold ${day.completion >= 90 ? 'text-green-600' : day.completion >= 70 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                    {day.completion}%
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+
+                        {activeInsight === 'team' && (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Operador</TableHead>
+                                        <TableHead className="text-right">Tarefas Realizadas</TableHead>
+                                        <TableHead className="text-right">Total Agendado</TableHead>
+                                        <TableHead className="text-right">Aproveitamento</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {operatorPerformance.map((op, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell className="font-medium">{op.fullName}</TableCell>
+                                            <TableCell className="text-right">{op.tasks}</TableCell>
+                                            <TableCell className="text-right">{op.totalScheduled}</TableCell>
+                                            <TableCell className="text-right">{op.score}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+
+                        {activeInsight === 'performer' && (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Dia</TableHead>
+                                        <TableHead className="text-right">Tarefas Concluídas</TableHead>
+                                        <TableHead className="text-right">Meta Diária</TableHead>
+                                        <TableHead className="text-right">Desempenho</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {performerDailyStats.map((day, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell className="font-medium">{day.dayName} <span className="text-muted-foreground text-xs ml-1">({day.date})</span></TableCell>
+                                            <TableCell className="text-right">{day.completed}</TableCell>
+                                            <TableCell className="text-right">{day.total}</TableCell>
+                                            <TableCell className="text-right">
+                                                <span className={`font-bold ${day.percentage >= 90 ? 'text-green-600' : day.percentage >= 70 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                    {day.percentage}%
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+
+                        {activeInsight === 'priority' && (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Tarefa</TableHead>
+                                        <TableHead>Responsável</TableHead>
+                                        <TableHead>Horário</TableHead>
+                                        <TableHead className="text-right">Status (Hoje)</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {highPriorityTasks.map((task, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell className="font-medium">{task.taskName}</TableCell>
+                                            <TableCell>{task.operator}</TableCell>
+                                            <TableCell>{task.time || '-'}</TableCell>
+                                            <TableCell className="text-right">
+                                                <span className={`px-2 py-1 rounded-full text-xs ${task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                    {task.status === 'completed' ? 'Concluído' : 'Pendente'}
+                                                </span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
