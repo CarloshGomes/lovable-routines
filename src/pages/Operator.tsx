@@ -8,7 +8,7 @@ import { GlassCard } from '@/components/GlassCard';
 import { Greeting } from '@/components/Greeting';
 import {
   LogOut, HelpCircle, Clock, Sun, Moon,
-  CheckCircle2, Circle, Filter, Zap, TrendingUp
+  CheckCircle2, Circle, Filter, Zap, TrendingUp, LayoutDashboard
 } from 'lucide-react';
 import logoImage from '@/assets/logo.svg';
 import {
@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { CelebrationModal } from '@/components/CelebrationModal';
+import { OperatorAnalytics } from '@/components/operator/OperatorAnalytics';
 
 const Operator = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const Operator = () => {
   const { theme, toggleTheme } = useTheme();
 
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [showDashboard, setShowDashboard] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   // Simulation mode removed for operators — always use real time
   const [reportsDraft, setReportsDraft] = useState<Record<string, string>>({});
@@ -222,6 +224,15 @@ const Operator = () => {
                 className="hover:bg-primary/10"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDashboard(true)}
+                className="hover:bg-primary/10"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline">Meu Desempenho</span>
               </Button>
               <Button
                 variant="ghost"
@@ -509,6 +520,11 @@ const Operator = () => {
         open={celebrationOpen}
         onOpenChange={setCelebrationOpen}
         userName={profile.name}
+      />
+
+      <OperatorAnalytics
+        isOpen={showDashboard}
+        onClose={() => setShowDashboard(false)}
       />
     </div>
   );
