@@ -16,6 +16,7 @@ export interface TrackingData {
     delayReason?: string;
     isImpossible?: boolean;
     escalated?: boolean;
+    attachments?: string[];
 }
 
 export type ScheduleSnapshots = Record<string, Record<string, ScheduleBlock[]>>;

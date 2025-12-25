@@ -169,6 +169,45 @@ const Operator = () => {
     }
   };
 
+  const handleAttachment = async (blockId: string, files: FileList) => {
+    const existing = userTracking[blockId] || { tasks: [], report: '', reportSent: false, timestamp: '' };
+    const currentAttachments = existing.attachments || [];
+
+    // Process files
+    const newAttachments: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      // Convert to Base64 (simple storage)
+      const reader = new FileReader();
+
+      const filePromise = new Promise<string>((resolve) => {
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            resolve(e.target.result as string);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      try {
+        const base64 = await filePromise;
+        newAttachments.push(base64);
+      } catch (err) {
+        console.error('Error reading file', err);
+        addToast('Erro ao anexar arquivo', 'error');
+      }
+    }
+
+    if (newAttachments.length > 0) {
+      updateTracking(currentUser, blockId, {
+        ...existing,
+        attachments: [...currentAttachments, ...newAttachments]
+      });
+      addToast('Arquivos anexados com sucesso!', 'success');
+    }
+  };
+
   const filteredSchedule = userSchedule.filter((block) => {
     const tracking = userTracking[block.id];
     if (filter === 'completed') {
@@ -388,6 +427,9 @@ const Operator = () => {
               isEscalated={tracking.escalated}
               delayReason={tracking.delayReason}
               isImpossible={tracking.isImpossible}
+              // Attachments
+              onAttachment={(files) => handleAttachment(block.id, files)}
+              attachments={tracking.attachments}
             />
           );
         })}

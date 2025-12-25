@@ -78,6 +78,9 @@ interface RoutineCardProps {
     delayReason?: string;
     isImpossible?: boolean;
     timestamp?: string;
+    // Attachment Props
+    onAttachment?: (files: FileList) => void;
+    attachments?: string[];
 }
 
 export function RoutineCard({
@@ -91,11 +94,17 @@ export function RoutineCard({
     isEscalated = false,
     delayReason,
     isImpossible,
-    timestamp
+    timestamp,
+    onAttachment,
+    attachments = []
 }: RoutineCardProps) {
     const [isOpen, setIsOpen] = useState(block.status === 'current');
     // Local state for visibility toggle only, content controlled by parent
     const [showNotes, setShowNotes] = useState(false);
+
+    const handleFileClick = () => {
+        document.getElementById(`file-upload-${block.id}`)?.click();
+    };
 
     const config = statusConfig[block.status];
     const StatusIcon = config.icon;
@@ -238,10 +247,28 @@ export function RoutineCard({
                                 <MessageSquare className="w-3.5 h-3.5" />
                                 {showNotes || noteValue ? 'Observação' : 'Adicionar Nota'}
                             </Button>
-                            <Button variant="outline" size="sm" className="h-9 gap-2 text-xs">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 gap-2 text-xs"
+                                onClick={handleFileClick}
+                                disabled={isReportSent}
+                            >
                                 <Paperclip className="w-3.5 h-3.5" />
-                                Anexo
+                                {attachments.length > 0 ? `${attachments.length} Anexo(s)` : 'Anexo'}
                             </Button>
+                            <input
+                                id={`file-upload-${block.id}`}
+                                type="file"
+                                className="hidden"
+                                multiple
+                                accept="image/*,.pdf"
+                                onChange={(e) => {
+                                    if (e.target.files && onAttachment) {
+                                        onAttachment(e.target.files);
+                                    }
+                                }}
+                            />
                             <div className="flex-1" />
 
                             {isReportSent ? (
@@ -310,7 +337,7 @@ export function RoutineCard({
 
                                     <Button
                                         size="sm"
-                                        variant="danger"
+                                        variant="destructive"
                                         className="whitespace-nowrap shadow-none border border-danger/50 h-9"
                                         onClick={() => onDelayReport('impossible_to_complete', true)}
                                     >
