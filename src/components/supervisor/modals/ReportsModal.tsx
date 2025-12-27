@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
-import { FileText, Download, FileSpreadsheet, FileType, Calendar } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface ReportsModalProps {
   open: boolean;
@@ -20,6 +21,8 @@ interface ReportsModalProps {
 }
 
 interface ReportData {
+  id: string;
+  reviewed: boolean;
   operatorName: string;
   operatorRole: string;
   blockLabel: string;
@@ -36,10 +39,24 @@ type DatePreset = 'today' | 'week' | 'month' | 'custom';
 export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
   const { userProfiles, schedules, trackingData } = useApp();
   const today = new Date();
-  
+
   const [datePreset, setDatePreset] = useState<DatePreset>('today');
   const [startDate, setStartDate] = useState<Date>(today);
   const [endDate, setEndDate] = useState<Date>(today);
+  const [reviewedReports, setReviewedReports] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('reviewed_reports') || '[]'));
+    } catch {
+      return new Set();
+    }
+  });
+
+  const handleMarkAsReviewed = (reportId: string) => {
+    const newReviewed = new Set(reviewedReports);
+    newReviewed.add(reportId);
+    setReviewedReports(newReviewed);
+    localStorage.setItem('reviewed_reports', JSON.stringify(Array.from(newReviewed)));
+  };
 
   const getDateRange = (): { start: Date; end: Date } => {
     switch (datePreset) {
@@ -72,16 +89,19 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
         const reportDate = dateMatch[1];
         const reportDateObj = parseISO(reportDate);
 
-        if (!isWithinInterval(reportDateObj, { 
-          start: startOfDay(dateRange.start), 
-          end: endOfDay(dateRange.end) 
+        if (!isWithinInterval(reportDateObj, {
+          start: startOfDay(dateRange.start),
+          end: endOfDay(dateRange.end)
         })) return;
 
         if (tracking?.reportSent && tracking?.report) {
           const blockId = key.replace(`${reportDate}-`, '');
           const block = schedule.find(b => b.id === blockId);
+          const reportId = `report-${reportDate}-${username}-${blockId}`;
 
           reports.push({
+            id: reportId,
+            reviewed: reviewedReports.has(reportId),
             operatorName: profile.name,
             operatorRole: profile.role,
             blockLabel: block?.label || 'Bloco',
@@ -116,7 +136,7 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
     doc.setFontSize(18);
     doc.text('Relatórios', pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 10;
-    
+
     doc.setFontSize(12);
     doc.text(`Período: ${getDateRangeLabel()}`, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 15;
@@ -156,10 +176,10 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
       yPosition += 10;
     });
 
-    const filename = datePreset === 'today' 
+    const filename = datePreset === 'today'
       ? `relatorios-${format(today, 'yyyy-MM-dd')}.pdf`
       : `relatorios-${format(dateRange.start, 'yyyy-MM-dd')}_${format(dateRange.end, 'yyyy-MM-dd')}.pdf`;
-    
+
     doc.save(filename);
     toast.success('PDF exportado com sucesso!');
   };
@@ -191,7 +211,7 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
       { wch: 50 },
     ];
 
-    const filename = datePreset === 'today' 
+    const filename = datePreset === 'today'
       ? `relatorios-${format(today, 'yyyy-MM-dd')}.xlsx`
       : `relatorios-${format(dateRange.start, 'yyyy-MM-dd')}_${format(dateRange.end, 'yyyy-MM-dd')}.xlsx`;
 
@@ -258,10 +278,10 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
     });
 
     const blob = await Packer.toBlob(doc);
-    const filename = datePreset === 'today' 
+    const filename = datePreset === 'today'
       ? `relatorios-${format(today, 'yyyy-MM-dd')}.docx`
       : `relatorios-${format(dateRange.start, 'yyyy-MM-dd')}_${format(dateRange.end, 'yyyy-MM-dd')}.docx`;
-    
+
     saveAs(blob, filename);
     toast.success('Word exportado com sucesso!');
   };
@@ -385,18 +405,45 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
           {reports.length > 0 ? (
             <div className="space-y-4">
               {reports.map((report, idx) => (
-                <div key={idx} className="p-4 rounded-xl bg-muted/30 border border-border">
+                <div
+                  key={idx}
+                  className={cn(
+                    "p-4 rounded-xl border transition-all duration-200",
+                    report.reviewed
+                      ? "bg-muted/30 border-border opacity-75"
+                      : "bg-card border-primary/20 shadow-sm"
+                  )}
+                >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" />
+                      <FileText className={cn("w-4 h-4", report.reviewed ? "text-muted-foreground" : "text-primary")} />
                       <span className="font-semibold">{report.operatorName}</span>
                       <span className="text-xs text-muted-foreground">({report.operatorRole})</span>
+                      {report.reviewed && (
+                        <Badge variant="outline" className="h-5 text-[10px] gap-1 bg-success/5 text-success border-success/20">
+                          <CheckCircle className="w-3 h-3" />
+                          Lido
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {format(parseISO(report.date), "dd/MM/yyyy")}
-                      </span>
-                      <span className="text-sm font-medium text-primary">{report.blockLabel}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {format(parseISO(report.date), "dd/MM/yyyy")}
+                        </span>
+                        <span className="text-sm font-medium text-primary">{report.blockLabel}</span>
+                      </div>
+                      {!report.reviewed && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 hover:border-primary/30 text-primary"
+                          onClick={() => handleMarkAsReviewed(report.id)}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1.5" />
+                          Marcar como lido
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="p-3 rounded-lg bg-background/50 border border-border">

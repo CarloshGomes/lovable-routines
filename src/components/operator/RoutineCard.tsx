@@ -101,9 +101,25 @@ export function RoutineCard({
     const [isOpen, setIsOpen] = useState(block.status === 'current');
     // Local state for visibility toggle only, content controlled by parent
     const [showNotes, setShowNotes] = useState(false);
+    // Local state for delay justification
+    const [selectedDelayReason, setSelectedDelayReason] = useState<string>('');
 
     const handleFileClick = () => {
         document.getElementById(`file-upload-${block.id}`)?.click();
+    };
+
+    const handleSendJustification = () => {
+        if (selectedDelayReason && onDelayReport) {
+            onDelayReport(selectedDelayReason, false);
+            setSelectedDelayReason(''); // Reset after sending
+        }
+    };
+
+    const handleMarkImpossible = () => {
+        if (onDelayReport) {
+            onDelayReport('impossible_to_complete', true);
+            setSelectedDelayReason(''); // Reset after sending
+        }
     };
 
     const config = statusConfig[block.status];
@@ -321,11 +337,11 @@ export function RoutineCard({
                                     <span className="text-sm">Justificar Atraso</span>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="flex flex-col gap-3">
                                     <select
                                         className="flex-1 px-3 py-2 rounded-lg bg-background border border-danger/30 focus:border-danger focus:ring-2 focus:ring-danger/20 outline-none text-sm h-9"
-                                        onChange={(e) => e.target.value && onDelayReport(e.target.value, false)}
-                                        value=""
+                                        onChange={(e) => setSelectedDelayReason(e.target.value)}
+                                        value={selectedDelayReason}
                                     >
                                         <option value="" disabled>Selecione o motivo...</option>
                                         <option value="high_demand">Alta demanda de chamados</option>
@@ -335,15 +351,28 @@ export function RoutineCard({
                                         <option value="other">Outro (Descrever acima)</option>
                                     </select>
 
-                                    <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        className="whitespace-nowrap shadow-none border border-danger/50 h-9"
-                                        onClick={() => onDelayReport('impossible_to_complete', true)}
-                                    >
-                                        <XCircle className="w-4 h-4 mr-2" />
-                                        Marcar Impossível
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="default"
+                                            className="flex-1 bg-warning hover:bg-warning/90 text-warning-foreground shadow-none h-9"
+                                            onClick={handleSendJustification}
+                                            disabled={!selectedDelayReason}
+                                        >
+                                            <Send className="w-4 h-4 mr-2" />
+                                            Enviar Justificativa
+                                        </Button>
+
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            className="whitespace-nowrap shadow-none border border-danger/50 h-9"
+                                            onClick={handleMarkImpossible}
+                                        >
+                                            <XCircle className="w-4 h-4 mr-2" />
+                                            Marcar Impossível
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         )}

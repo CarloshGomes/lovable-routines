@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ScheduleBlock, TrackingData, ScheduleSnapshots } from '@/types/operations';
+import { REASON_LABELS } from '@/constants/operations';
 import { UserProfile } from '@/types/auth'; // Needed for logs details if keeping logs here? Logs likely belong to System or split.
 // Actually AppContext kept logs. I'll duplicate addActivityLog logic or assume ActivityContext later?
 // For now, I'll keep activity logging inside the operations actions by writing directly to Supabase, consistent with AuthContext.
@@ -67,7 +68,7 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
             const { data: trackingDataDb } = await supabase.from('tracking_data').select('*');
             if (trackingDataDb) {
                 const trackingMap: Record<string, Record<string, TrackingData>> = {};
-                trackingDataDb.forEach(t => {
+                trackingDataDb.forEach((t: any) => {
                     if (!trackingMap[t.username]) trackingMap[t.username] = {};
 
                     const parsedTasks: number[] = (t.completed_tasks || []).map((s: string) => {
@@ -75,11 +76,28 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
                         return m ? parseInt(m[1], 10) : NaN;
                     }).filter((n: number) => !isNaN(n));
 
+                    // Try to parse notes as JSON for justification data
+                    let justificationData: any = {};
+                    if (t.notes) {
+                        try {
+                            const parsed = JSON.parse(t.notes);
+                            if (parsed.delayReason) {
+                                justificationData = parsed;
+                            }
+                        } catch (e) {
+                            // Not JSON, treat as regular note
+                        }
+                    }
+
                     trackingMap[t.username][t.tracking_key] = {
                         tasks: parsedTasks,
-                        report: t.notes || '',
+                        report: justificationData.delayReason ? (justificationData.report || '') : (t.notes || ''),
                         reportSent: !!t.notes,
                         timestamp: t.updated_at,
+                        // Add justification fields from parsed JSON
+                        delayReason: justificationData.delayReason || undefined,
+                        isImpossible: justificationData.isImpossible || false,
+                        escalated: justificationData.escalated || false,
                     };
                 });
                 setTrackingData(trackingMap);
@@ -214,17 +232,30 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
 
         const completedTasks = data.tasks.map(i => `task-${i}`);
 
+        // If we have justification data, store it as JSON in notes
+        let notesValue = data.report;
+        if (data.delayReason || data.isImpossible || data.escalated) {
+            notesValue = JSON.stringify({
+                report: data.report,
+                delayReason: data.delayReason,
+                isImpossible: data.isImpossible,
+                escalated: data.escalated,
+                timestamp: data.timestamp || new Date().toISOString()
+            });
+        }
+
+        const trackingPayload = {
+            completed_tasks: completedTasks,
+            notes: notesValue,
+        };
+
         if (existing) {
-            await supabase.from('tracking_data').update({
-                completed_tasks: completedTasks,
-                notes: data.report,
-            }).eq('id', existing.id);
+            await supabase.from('tracking_data').update(trackingPayload).eq('id', existing.id);
         } else {
             await supabase.from('tracking_data').insert({
                 tracking_key: trackingKey,
                 username,
-                completed_tasks: completedTasks,
-                notes: data.report,
+                ...trackingPayload,
             });
         }
 
@@ -233,6 +264,16 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
                 username,
                 action: 'report_sent',
                 details: `Enviou relatório do bloco ${blockId}`,
+            });
+        }
+
+        // Log justification if sent
+        if (data.delayReason) {
+            const reasonLabel = REASON_LABELS[data.delayReason] || data.delayReason;
+            await supabase.from('activity_logs').insert({
+                username,
+                action: 'justification_sent',
+                details: `Enviou justificativa: ${reasonLabel}${data.isImpossible ? ' (Impossível)' : ''}`,
             });
         }
 

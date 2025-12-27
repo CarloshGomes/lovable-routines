@@ -22,6 +22,7 @@ import CalendarView from './CalendarView';
 import { CompletionRateModal } from './modals/CompletionRateModal';
 import { TasksCompletedModal } from './modals/TasksCompletedModal';
 import { ReportsModal } from './modals/ReportsModal';
+import { JustificationsModal } from './modals/JustificationsModal';
 import { ActiveOperatorsModal } from './modals/ActiveOperatorsModal';
 import { toast } from 'sonner';
 import { SpotlightCard } from '@/components/SpotlightCard';
@@ -45,6 +46,7 @@ const Dashboard = () => {
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [tasksModalOpen, setTasksModalOpen] = useState(false);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
+  const [justificationsModalOpen, setJustificationsModalOpen] = useState(false);
   const [operatorsModalOpen, setOperatorsModalOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const notifiedRef = useRef<Set<string>>(new Set());
@@ -190,6 +192,80 @@ const Dashboard = () => {
     console.log("--- End Validation Check ---");
   }, [lateOperatorsData, notificationsEnabled, today, userProfiles, addNotification]);
 
+  // Automatic notifications for justifications
+  useEffect(() => {
+    console.log("--- Validation Logic Check: Justifications ---");
+
+    let hasJustificationUpdates = false;
+
+    // Check all tracking data for justifications
+    Object.entries(trackingData).forEach(([username, userTracking]) => {
+      const profile = userProfiles[username];
+      const schedule = schedules[username] || [];
+
+      Object.entries(userTracking).forEach(([key, tracking]: [string, any]) => {
+        // Only check today's justifications
+        if (key.startsWith(today) && tracking.delayReason) {
+          const blockId = key.substring(11); // Remove "YYYY-MM-DD-" prefix
+          const block = schedule.find(b => b.id === blockId);
+
+          if (block) {
+            const justificationKey = `justification-${today}-${username}-${blockId}`;
+
+            console.log(`Checking justification: ${username}, Block: ${block.label}, Reason: ${tracking.delayReason}`);
+
+            // Check if we've already notified about this justification
+            if (!notifiedRef.current.has(justificationKey)) {
+              notifiedRef.current.add(justificationKey);
+              hasJustificationUpdates = true;
+
+              const operatorName = profile?.name || username;
+              const reasonLabels: Record<string, string> = {
+                high_demand: 'Alta Demanda',
+                system_slowness: 'Sistema Lento',
+                external_factor: 'Fator Externo',
+                break_adjustment: 'Intervalo',
+                other: 'Outro',
+                impossible_to_complete: 'Impossível de Completar'
+              };
+              const reasonLabel = reasonLabels[tracking.delayReason] || tracking.delayReason;
+
+              // Add to notification center
+              addNotification(
+                `Justificativa: ${operatorName}`,
+                `${block.label} - ${reasonLabel}`,
+                tracking.isImpossible ? 'error' : 'warning',
+                { justificationKey, username, blockId, reason: tracking.delayReason }
+              );
+
+              // Show toast if enabled
+              if (notificationsEnabled) {
+                const toastFn = tracking.isImpossible ? toast.error : toast.warning;
+                toastFn(
+                  `Justificativa Recebida: ${operatorName}`,
+                  {
+                    description: `${block.label} - ${reasonLabel}`,
+                    duration: 10000,
+                    icon: <AlertTriangle className="w-5 h-5" />,
+                  }
+                );
+              }
+            } else {
+              console.log(`Skipping justification notification for ${username}-${blockId} (Already notified)`);
+            }
+          }
+        }
+      });
+    });
+
+    // Update localStorage if we added new justification notifications
+    if (hasJustificationUpdates) {
+      localStorage.setItem('sent_late_notifications', JSON.stringify(Array.from(notifiedRef.current)));
+    }
+
+    console.log("--- End Justification Check ---");
+  }, [trackingData, schedules, userProfiles, notificationsEnabled, today, addNotification]);
+
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* View Mode Toggle */}
@@ -315,6 +391,7 @@ const Dashboard = () => {
         onOpenTasksModal={() => setTasksModalOpen(true)}
         onOpenReportsModal={() => setReportsModalOpen(true)}
         onOpenOperatorsModal={() => setOperatorsModalOpen(true)}
+        onOpenJustificationsModal={() => setJustificationsModalOpen(true)}
       />
 
       {/* Modals */}
@@ -322,6 +399,7 @@ const Dashboard = () => {
       <TasksCompletedModal open={tasksModalOpen} onOpenChange={setTasksModalOpen} />
       <ReportsModal open={reportsModalOpen} onOpenChange={setReportsModalOpen} />
       <ActiveOperatorsModal open={operatorsModalOpen} onOpenChange={setOperatorsModalOpen} />
+      <JustificationsModal open={justificationsModalOpen} onOpenChange={setJustificationsModalOpen} />
 
       {/* Late Alert */}
       {lateOperators.length > 0 && (
