@@ -92,7 +92,7 @@ export const OperationsProvider = ({ children }: { children: ReactNode }) => {
                     trackingMap[t.username][t.tracking_key] = {
                         tasks: parsedTasks,
                         report: justificationData.delayReason ? (justificationData.report || '') : (t.notes || ''),
-                        reportSent: !!t.notes,
+                        reportSent: justificationData.delayReason ? !!justificationData.report : !!t.notes,
                         timestamp: t.updated_at,
                         // Add justification fields from parsed JSON
                         delayReason: justificationData.delayReason || undefined,
