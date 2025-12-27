@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
-import { FileText, Download, FileSpreadsheet, FileType, Calendar, CheckCircle } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, FileType, Calendar, CheckCircle, Paperclip, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
@@ -32,6 +32,7 @@ interface ReportData {
   totalTasks: string[];
   timestamp: string;
   date: string;
+  attachments?: string[];
 }
 
 type DatePreset = 'today' | 'week' | 'month' | 'custom';
@@ -111,6 +112,7 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
             totalTasks: block?.tasks || [],
             timestamp: new Date(reportDate).toLocaleString('pt-BR'),
             date: reportDate,
+            attachments: tracking.attachments || [],
           });
         }
       });
@@ -452,6 +454,36 @@ export const ReportsModal = ({ open, onOpenChange }: ReportsModalProps) => {
                   <div className="mt-2 text-xs text-muted-foreground">
                     Tarefas: {report.completedTasks.length}/{report.totalTasks.length} concluídas
                   </div>
+
+                  {report.attachments && report.attachments.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <p className="text-xs font-medium mb-2 flex items-center gap-1.5 text-muted-foreground">
+                        <Paperclip className="w-3.5 h-3.5" />
+                        Anexos ({report.attachments.length}):
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {report.attachments.map((url, attachIdx) => (
+                          <a
+                            key={attachIdx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex items-center gap-2 px-3 py-2 rounded-md bg-background border border-border hover:bg-accent/5 transition-colors text-xs"
+                          >
+                            {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                              <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
+                            ) : (
+                              <FileText className="w-3.5 h-3.5 text-orange-500" />
+                            )}
+                            <span className="max-w-[150px] truncate text-foreground group-hover:text-primary transition-colors">
+                              Anexo {attachIdx + 1}
+                            </span>
+                            <ExternalLink className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

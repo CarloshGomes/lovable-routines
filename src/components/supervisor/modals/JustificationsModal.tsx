@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
-import { AlertTriangle, Download, FileSpreadsheet, FileType, Calendar, CheckCircle, XCircle, Filter } from 'lucide-react';
+import { AlertTriangle, Download, FileSpreadsheet, FileType, Calendar, CheckCircle, XCircle, Filter, Paperclip, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
@@ -121,6 +121,7 @@ export const JustificationsModal = ({ open, onOpenChange }: JustificationsModalP
                         isImpossible: tracking.isImpossible || false,
                         timestamp: tracking.timestamp ? new Date(tracking.timestamp).toLocaleString('pt-BR') : '',
                         date: dateStr,
+                        attachments: tracking.attachments || [],
                     });
                 }
             });
@@ -328,6 +329,36 @@ export const JustificationsModal = ({ open, onOpenChange }: JustificationsModalP
                                             <span className={cn("font-medium", item.reasonColor)}>{item.reasonLabel}</span>
                                         </p>
                                     </div>
+
+                                    {item.attachments && item.attachments.length > 0 && (
+                                        <div className="mt-3 pt-3 border-t border-border">
+                                            <p className="text-xs font-medium mb-2 flex items-center gap-1.5 text-muted-foreground">
+                                                <Paperclip className="w-3.5 h-3.5" />
+                                                Anexos ({item.attachments.length}):
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {item.attachments.map((url, attachIdx) => (
+                                                    <a
+                                                        key={attachIdx}
+                                                        href={url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="group flex items-center gap-2 px-3 py-2 rounded-md bg-background border border-border hover:bg-accent/5 transition-colors text-xs"
+                                                    >
+                                                        {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                            <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
+                                                        ) : (
+                                                            <FileText className="w-3.5 h-3.5 text-orange-500" />
+                                                        )}
+                                                        <span className="max-w-[150px] truncate text-foreground group-hover:text-primary transition-colors">
+                                                            Anexo {attachIdx + 1}
+                                                        </span>
+                                                        <ExternalLink className="w-3 h-3 opacity-50 group-hover:opacity-100" />
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

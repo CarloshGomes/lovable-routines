@@ -1,274 +1,73 @@
-import { useState, useEffect, useRef } from 'react';
-import { useApp } from '@/contexts/AppContext';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
-import {
-  AlertTriangle, Calendar, List, Bell, Check, ChevronsUpDown, BellOff
-} from 'lucide-react';
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { AlertTriangle, Calendar, List } from 'lucide-react';
+import { toast } from 'sonner';
+import { SpotlightCard } from '@/components/SpotlightCard';
+
+// Components
+import { StatsOverview } from './dashboard/StatsOverview';
+import { OperatorGrid } from './dashboard/OperatorGrid';
+import { OperatorFilter } from './dashboard/components/OperatorFilter';
+import { NotificationCenter } from './NotificationCenter';
 import CalendarView from './CalendarView';
+
+// Modals
 import { CompletionRateModal } from './modals/CompletionRateModal';
 import { TasksCompletedModal } from './modals/TasksCompletedModal';
 import { ReportsModal } from './modals/ReportsModal';
 import { JustificationsModal } from './modals/JustificationsModal';
 import { ActiveOperatorsModal } from './modals/ActiveOperatorsModal';
-import { toast } from 'sonner';
-import { SpotlightCard } from '@/components/SpotlightCard';
 
-// Extracted Components
-import { StatsOverview } from './dashboard/StatsOverview';
-import { OperatorGrid } from './dashboard/OperatorGrid';
-import { useNotifications } from '@/hooks/use-notifications';
-import { NotificationCenter } from './NotificationCenter';
-
-interface LateNotification {
-  username: string;
-  operatorName: string;
-  blockLabel: string;
-  notifiedAt: number;
-}
+// Hooks
+import { useDashboardStats } from './dashboard/hooks/useDashboardStats';
+import { useDashboardModals } from './dashboard/hooks/useDashboardModals';
+import { useDashboardNotifications } from './dashboard/hooks/useDashboardNotifications';
 
 const Dashboard = () => {
-  const { userProfiles, schedules, trackingData, activityLog, activeUsers } = useApp();
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [completionModalOpen, setCompletionModalOpen] = useState(false);
-  const [tasksModalOpen, setTasksModalOpen] = useState(false);
-  const [reportsModalOpen, setReportsModalOpen] = useState(false);
-  const [justificationsModalOpen, setJustificationsModalOpen] = useState(false);
-  const [operatorsModalOpen, setOperatorsModalOpen] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const notifiedRef = useRef<Set<string>>(new Set());
-  const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
+  // 1. Stats and Data Logic
+  const {
+    todayTrackingData,
+    totalTasks,
+    completedTasks,
+    totalReports,
+    completionRate,
+    totalUsers,
+    lateOperatorsData,
+    lateOperators,
+    userProfiles,
+    schedules,
+    trackingData,
+    activeUsers
+  } = useDashboardStats();
 
-  // Simulated Loading State
+  // 2. Modals Logic
+  const modals = useDashboardModals();
+
+  // 3. Notifications Logic
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+    notificationsEnabled,
+    setNotificationsEnabled
+  } = useDashboardNotifications({ lateOperatorsData });
+
+  // 4. UI State
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate initial data fetch
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
+    // Simulate initial loading for smooth transition
+    const timer = setTimeout(() => setIsLoading(false), 1200);
     return () => clearTimeout(timer);
   }, []);
 
-  // Filter tracking data to show only today's data in list view
-  const today = new Date().toISOString().split('T')[0];
-  const todayTrackingData: Record<string, Record<string, any>> = {};
-  Object.entries(trackingData).forEach(([username, userTracking]) => {
-    todayTrackingData[username] = {};
-    Object.entries(userTracking).forEach(([key, value]) => {
-      if (key.startsWith(today)) {
-        const blockId = key.substring(11); // Remove "YYYY-MM-DD-" prefix
-        todayTrackingData[username][blockId] = value;
-      }
-    });
-  });
-
-  const totalUsers = Object.keys(userProfiles).length;
-
-  let totalTasks = 0;
-  let completedTasks = 0;
-  let totalReports = 0;
-
-  Object.keys(schedules).forEach((username) => {
-    const schedule = schedules[username];
-    const tracking = todayTrackingData[username] || {};
-
-    schedule.forEach((block) => {
-      totalTasks += block.tasks.length;
-      const blockTracking = tracking[block.id];
-      if (blockTracking) {
-        completedTasks += blockTracking.tasks.length;
-        if (blockTracking.reportSent) totalReports++;
-      }
-    });
-  });
-
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  const currentHour = new Date().getHours();
-
-  // Detect late operators and their specific late blocks
-  const lateOperatorsData: { username: string; lateBlocks: typeof schedules[string] }[] = [];
-
-  Object.entries(schedules).forEach(([username, schedule]) => {
-    const tracking = todayTrackingData[username] || {};
-    const lateBlocks = schedule.filter((block) => {
-      if (block.time < currentHour) {
-        const blockTracking = tracking[block.id];
-        return !blockTracking || blockTracking.tasks.length < block.tasks.length;
-      }
-      return false;
-    });
-
-    if (lateBlocks.length > 0) {
-      lateOperatorsData.push({ username, lateBlocks });
-    }
-  });
-
-  const lateOperators = lateOperatorsData.map(d => [d.username, schedules[d.username]] as [string, typeof schedules[string]]);
-
-  // Notifications Hook
-  const { notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearAll } = useNotifications();
-
-  // Initialize notifiedRef from localStorage to persist dismissal across reloads
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('sent_late_notifications');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Filter only keys for today to allow new notifications tomorrow
-        const todayKeys = parsed.filter((k: string) => k.startsWith(today));
-        todayKeys.forEach((k: string) => notifiedRef.current.add(k));
-      }
-    } catch (e) {
-      console.error('Failed to load sent notifications history', e);
-    }
-  }, [today]);
-
-  // Automatic notifications for late tasks
-  useEffect(() => {
-    // Check for duplicates and logic validation
-    console.log("--- Validation Logic Check: Late Tasks ---");
-
-    let hasUpdates = false;
-
-    // Always check for late tasks
-    lateOperatorsData.forEach(({ username, lateBlocks }) => {
-      lateBlocks.forEach((block) => {
-        const notificationKey = `${today}-${username}-${block.id}`;
-
-        console.log(`Checking operator: ${username}, Block: ${block.label}, Status: LATE`);
-
-        // Check if this specific notification key already exists in history
-        if (!notifiedRef.current.has(notificationKey)) {
-          notifiedRef.current.add(notificationKey);
-          hasUpdates = true;
-
-          const operatorName = userProfiles[username]?.name || username;
-
-          // Add to persistent store with metadata for deduplication
-          addNotification(
-            `Tarefa Atrasada: ${operatorName}`,
-            `${block.label} não foi concluído no horário previsto`,
-            'warning',
-            { notificationKey }
-          );
-
-          // Show toast if enabled
-          if (notificationsEnabled) {
-            toast.error(
-              `Tarefa Atrasada: ${operatorName}`,
-              {
-                description: `${block.label} não foi concluído no horário previsto`,
-                duration: 8000,
-                icon: <AlertTriangle className="w-5 h-5 text-danger" />,
-              }
-            );
-          }
-        } else {
-          console.log(`Skipping notification for ${username} (Already notified in history)`);
-        }
-      });
-    });
-
-    // Update localStorage if we added new keys
-    if (hasUpdates) {
-      localStorage.setItem('sent_late_notifications', JSON.stringify(Array.from(notifiedRef.current)));
-    }
-
-    console.log("--- End Validation Check ---");
-  }, [lateOperatorsData, notificationsEnabled, today, userProfiles, addNotification]);
-
-  // Automatic notifications for justifications
-  useEffect(() => {
-    console.log("--- Validation Logic Check: Justifications ---");
-
-    let hasJustificationUpdates = false;
-
-    // Check all tracking data for justifications
-    Object.entries(trackingData).forEach(([username, userTracking]) => {
-      const profile = userProfiles[username];
-      const schedule = schedules[username] || [];
-
-      Object.entries(userTracking).forEach(([key, tracking]: [string, any]) => {
-        // Only check today's justifications
-        if (key.startsWith(today) && tracking.delayReason) {
-          const blockId = key.substring(11); // Remove "YYYY-MM-DD-" prefix
-          const block = schedule.find(b => b.id === blockId);
-
-          if (block) {
-            const justificationKey = `justification-${today}-${username}-${blockId}`;
-
-            console.log(`Checking justification: ${username}, Block: ${block.label}, Reason: ${tracking.delayReason}`);
-
-            // Check if we've already notified about this justification
-            if (!notifiedRef.current.has(justificationKey)) {
-              notifiedRef.current.add(justificationKey);
-              hasJustificationUpdates = true;
-
-              const operatorName = profile?.name || username;
-              const reasonLabels: Record<string, string> = {
-                high_demand: 'Alta Demanda',
-                system_slowness: 'Sistema Lento',
-                external_factor: 'Fator Externo',
-                break_adjustment: 'Intervalo',
-                other: 'Outro',
-                impossible_to_complete: 'Impossível de Completar'
-              };
-              const reasonLabel = reasonLabels[tracking.delayReason] || tracking.delayReason;
-
-              // Add to notification center
-              addNotification(
-                `Justificativa: ${operatorName}`,
-                `${block.label} - ${reasonLabel}`,
-                tracking.isImpossible ? 'error' : 'warning',
-                { justificationKey, username, blockId, reason: tracking.delayReason }
-              );
-
-              // Show toast if enabled
-              if (notificationsEnabled) {
-                const toastFn = tracking.isImpossible ? toast.error : toast.warning;
-                toastFn(
-                  `Justificativa Recebida: ${operatorName}`,
-                  {
-                    description: `${block.label} - ${reasonLabel}`,
-                    duration: 10000,
-                    icon: <AlertTriangle className="w-5 h-5" />,
-                  }
-                );
-              }
-            } else {
-              console.log(`Skipping justification notification for ${username}-${blockId} (Already notified)`);
-            }
-          }
-        }
-      });
-    });
-
-    // Update localStorage if we added new justification notifications
-    if (hasJustificationUpdates) {
-      localStorage.setItem('sent_late_notifications', JSON.stringify(Array.from(notifiedRef.current)));
-    }
-
-    console.log("--- End Justification Check ---");
-  }, [trackingData, schedules, userProfiles, notificationsEnabled, today, addNotification]);
-
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* View Mode Toggle */}
+      {/* Header & Controls */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Painel de Controle</h2>
         <div className="flex gap-2">
@@ -303,83 +102,14 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Operator Filter */}
+      <OperatorFilter
+        userProfiles={userProfiles}
+        selectedOperators={selectedOperators}
+        setSelectedOperators={setSelectedOperators}
+      />
 
-      {/* Operator Filter (Popover + Command) */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-medium">Filtrar Operadores:</label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" role="combobox" className="justify-between min-w-[200px]">
-              {selectedOperators.length === 0
-                ? "Todos os operadores"
-                : `${selectedOperators.length} selecionado(s)`}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Buscar operador..." />
-              <CommandList>
-                <CommandEmpty>Nenhum operador encontrado.</CommandEmpty>
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={() => setSelectedOperators([])}
-                    className="cursor-pointer"
-                  >
-                    <div className={cn(
-                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                      selectedOperators.length === 0 ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
-                    )}>
-                      <Check className={cn("h-4 w-4")} />
-                    </div>
-                    <span>Todos</span>
-                  </CommandItem>
-                  {Object.entries(userProfiles).map(([username, profile]) => {
-                    const isSelected = selectedOperators.includes(username);
-                    return (
-                      <CommandItem
-                        key={username}
-                        onSelect={() => {
-                          if (isSelected) {
-                            setSelectedOperators(prev => prev.filter(u => u !== username));
-                          } else {
-                            setSelectedOperators(prev => [...prev, username]);
-                          }
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <div className={cn(
-                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                          isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
-                        )}>
-                          <Check className={cn("h-4 w-4")} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>{profile.name}</span>
-                          <span className="text-xs text-muted-foreground">({profile.role})</span>
-                        </div>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {selectedOperators.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedOperators([])}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            Limpar Filtros
-          </Button>
-        )}
-      </div>
-
-      {/* Stats Overview Component */}
+      {/* Stats Overview */}
       <StatsOverview
         isLoading={isLoading}
         completionRate={completionRate}
@@ -387,19 +117,19 @@ const Dashboard = () => {
         totalTasks={totalTasks}
         totalReports={totalReports}
         totalUsers={totalUsers}
-        onOpenCompletionModal={() => setCompletionModalOpen(true)}
-        onOpenTasksModal={() => setTasksModalOpen(true)}
-        onOpenReportsModal={() => setReportsModalOpen(true)}
-        onOpenOperatorsModal={() => setOperatorsModalOpen(true)}
-        onOpenJustificationsModal={() => setJustificationsModalOpen(true)}
+        onOpenCompletionModal={() => modals.setCompletionModalOpen(true)}
+        onOpenTasksModal={() => modals.setTasksModalOpen(true)}
+        onOpenReportsModal={() => modals.setReportsModalOpen(true)}
+        onOpenOperatorsModal={() => modals.setOperatorsModalOpen(true)}
+        onOpenJustificationsModal={() => modals.setJustificationsModalOpen(true)}
       />
 
       {/* Modals */}
-      <CompletionRateModal open={completionModalOpen} onOpenChange={setCompletionModalOpen} />
-      <TasksCompletedModal open={tasksModalOpen} onOpenChange={setTasksModalOpen} />
-      <ReportsModal open={reportsModalOpen} onOpenChange={setReportsModalOpen} />
-      <ActiveOperatorsModal open={operatorsModalOpen} onOpenChange={setOperatorsModalOpen} />
-      <JustificationsModal open={justificationsModalOpen} onOpenChange={setJustificationsModalOpen} />
+      <CompletionRateModal open={modals.completionModalOpen} onOpenChange={modals.setCompletionModalOpen} />
+      <TasksCompletedModal open={modals.tasksModalOpen} onOpenChange={modals.setTasksModalOpen} />
+      <ReportsModal open={modals.reportsModalOpen} onOpenChange={modals.setReportsModalOpen} />
+      <ActiveOperatorsModal open={modals.operatorsModalOpen} onOpenChange={modals.setOperatorsModalOpen} />
+      <JustificationsModal open={modals.justificationsModalOpen} onOpenChange={modals.setJustificationsModalOpen} />
 
       {/* Late Alert */}
       {lateOperators.length > 0 && (
@@ -411,7 +141,7 @@ const Dashboard = () => {
               <div className="space-y-1">
                 {lateOperators.map(([username]) => (
                   <div key={username} className="text-sm text-danger/80">
-                    {userProfiles[username].name} - {userProfiles[username].role}
+                    {userProfiles[username]?.name || username} - {userProfiles[username]?.role || 'Operador'}
                   </div>
                 ))}
               </div>
@@ -420,7 +150,7 @@ const Dashboard = () => {
         </SpotlightCard>
       )}
 
-      {/* Content based on view mode */}
+      {/* View Content */}
       {viewMode === 'calendar' ? (
         <CalendarView />
       ) : (
@@ -438,3 +168,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
