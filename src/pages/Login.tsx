@@ -1,10 +1,12 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
-import { Moon, Sun, ShieldCheck, UserCircle2, ArrowRight, Lock, Fingerprint, Sparkles, Activity, Eye, EyeOff } from 'lucide-react';
+import { Moon, Sun, ShieldCheck, UserCircle2, ArrowRight, Lock, Fingerprint, Eye, EyeOff } from 'lucide-react';
 import logoImage from '@/assets/logo.svg';
 import { useLoginController } from '@/hooks/useLoginController';
 import { SupervisorLogin } from '@/components/auth/SupervisorLogin';
+import { AnimatedBackground } from '@/components/login/AnimatedBackground';
+import { ProfileLoginCard } from '@/components/login/ProfileLoginCard';
 
 const Login = () => {
   const { theme, toggleTheme } = useTheme();
@@ -18,185 +20,129 @@ const Login = () => {
     selectedOperator,
     pin,
     showOperatorPin,
-    showSupervisorPin,
     setShowPinModal,
     setShowOperatorPinModal,
     setSelectedOperator,
     setPin,
     setShowOperatorPin,
-    setShowSupervisorPin,
     handleOperatorClick,
     handleOperatorPinSubmit,
-    handleSupervisorAccess,
     verifySupervisor
   } = useLoginController();
 
   // Show loading state while data is being fetched
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground animate-pulse">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background overflow-hidden relative">
+        <AnimatedBackground />
+        <div className="flex flex-col items-center gap-6 z-10 p-10 rounded-3xl backdrop-blur-md bg-white/5 border border-white/10">
+          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-xl font-light tracking-widest text-foreground animate-pulse">CARREGANDO SISTEMA</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden bg-background">
-      {/* Premium Animated Background */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl animate-float opacity-60" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-accent/20 to-transparent rounded-full blur-3xl animate-float opacity-50" style={{ animationDelay: '-3s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:72px_72px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]" />
-        <div className="absolute inset-0 opacity-[0.015] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')]" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden font-sans">
+      <AnimatedBackground />
 
+      {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
-        className="fixed top-6 right-6 p-3 rounded-xl bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg hover:shadow-xl hover:scale-105 hover:border-primary/30 transition-all duration-300 z-50 group"
+        className="fixed top-6 right-6 p-3 rounded-full bg-white/5 backdrop-blur-md border border-white/10 shadow-xl hover:scale-110 hover:bg-white/10 transition-all duration-300 z-50 group"
       >
         {theme === 'dark' ? (
-          <Sun className="w-5 h-5 text-amber-400 group-hover:rotate-45 transition-transform duration-300" />
+          <Sun className="w-5 h-5 text-amber-300 group-hover:rotate-90 transition-transform duration-500" />
         ) : (
-          <Moon className="w-5 h-5 text-indigo-500 group-hover:-rotate-12 transition-transform duration-300" />
+          <Moon className="w-5 h-5 text-indigo-300 group-hover:-rotate-12 transition-transform duration-500" />
         )}
       </button>
 
-      <div className="w-full max-w-4xl">
-        <div className="text-center mb-10 sm:mb-14">
-          <div className="relative inline-flex justify-center mb-8">
-            <div className="relative">
-              <img src={logoImage} alt="Logo" className="w-20 h-20 sm:w-24 sm:h-24 object-contain relative z-10 drop-shadow-2xl" />
-              <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl scale-150 animate-pulse" />
-              <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-full blur-xl animate-spin-slow opacity-60" />
-            </div>
+      <div className="w-full max-w-5xl z-10 grid lg:grid-cols-2 gap-8 items-center">
+
+        {/* Left Col: Brand (Visible on large screens, centered on mobile) */}
+        <div className="text-center lg:text-left space-y-6 lg:pl-8">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-primary/40 blur-3xl rounded-full scale-150 animate-pulse" />
+            <img src={logoImage} alt="Logo" className="w-28 h-28 lg:w-32 lg:h-32 object-contain relative drop-shadow-2xl animate-float" />
           </div>
+
           <div className="space-y-4">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              <span className="relative">
-                <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                  Rondon Controle
-                </span>
-                <Sparkles className="absolute -top-2 -right-6 w-5 h-5 text-primary animate-pulse" />
-              </span>
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-primary to-purple-600 bg-300% animate-gradient drop-shadow-sm">
+              Rondon
+              <br />
+              Controle
             </h1>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-              <Activity className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Sistema de Gestão Operacional</span>
-            </div>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto">
-              Gestão operacional inteligente para sua equipe
-            </p>
+
+
           </div>
         </div>
 
-        <div className="bg-card/60 backdrop-blur-2xl rounded-3xl border border-border/50 shadow-2xl shadow-black/5 p-6 sm:p-8 lg:p-10 pointer-events-auto">
-          {isLoggingIn && (
-            <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-sm flex items-center justify-center rounded-3xl">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <p className="font-semibold text-primary animate-pulse">Autenticando...</p>
-              </div>
-            </div>
-          )}
+        {/* Right Col: Login Card */}
+        <div className="relative">
+          {/* Glass Card */}
+          <div className="backdrop-blur-xl bg-card/40 border border-white/10 shadow-2xl shadow-black/20 rounded-[2.5rem] p-6 sm:p-10 overflow-hidden relative">
 
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
-                <UserCircle2 className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Selecione seu perfil</h2>
-                <p className="text-sm text-muted-foreground">Escolha o operador para acessar</p>
-              </div>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-            {Object.entries(userProfiles).map(([username, profile], index) => (
-              <button
-                key={username}
-                onClick={() => handleOperatorClick(username)}
-                disabled={isLoggingIn}
-                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border/50 p-5 sm:p-6 text-left transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="flex items-center justify-between relative z-10">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-3xl sm:text-4xl border border-primary/10 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/20 transition-all duration-300">
-                        {profile.avatar}
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-card" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">
-                        {profile.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{profile.role}</p>
-                      {profile.pin && (
-                        <div className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                          <Lock className="w-3 h-3 text-primary" />
-                          <span className="text-xs font-medium text-primary">PIN</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-muted group-hover:bg-primary group-hover:shadow-lg transition-all duration-300">
-                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary-foreground group-hover:translate-x-0.5 transition-all duration-300" />
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
 
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border/50" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-4 text-xs font-medium text-muted-foreground bg-card">Acesso administrativo</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowPinModal(true)}
-            disabled={isLoggingIn}
-            className="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 border border-indigo-500/20 p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-500/40 hover:-translate-y-0.5 disabled:opacity-50"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/10 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:shadow-xl group-hover:shadow-indigo-500/40 group-hover:scale-110 transition-all duration-300">
-                    <ShieldCheck className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="absolute inset-0 bg-indigo-500/30 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="text-left">
-                  <h3 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-indigo-400 transition-colors duration-300">
-                    Painel Supervisor
-                  </h3>
-                  <p className="text-sm text-muted-foreground">Acesso com PIN de segurança</p>
+            {isLoggingIn && (
+              <div className="absolute inset-0 z-50 bg-background/60 backdrop-blur-md flex items-center justify-center rounded-[2.5rem]">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                  <p className="text-lg font-medium text-foreground animate-pulse">Autenticando...</p>
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 group-hover:bg-indigo-500 group-hover:border-indigo-500 transition-all duration-300">
-                <Fingerprint className="w-6 h-6 text-indigo-400 group-hover:text-white transition-colors duration-300" />
-              </div>
+            )}
+
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-2">Bem-vindo de volta</h2>
+              <p className="text-muted-foreground">Selecione seu perfil para iniciar o turno.</p>
             </div>
-          </button>
+
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {Object.entries(userProfiles).map(([username, profile], index) => (
+                <ProfileLoginCard
+                  key={username}
+                  username={username}
+                  profile={profile}
+                  onClick={handleOperatorClick}
+                  disabled={isLoggingIn}
+                  index={index}
+                />
+              ))}
+            </div>
+
+            <div className="my-8 flex items-center gap-4">
+              <div className="h-px bg-white/10 flex-1" />
+              <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Administrativo</span>
+              <div className="h-px bg-white/10 flex-1" />
+            </div>
+
+            <button
+              onClick={() => setShowPinModal(true)}
+              disabled={isLoggingIn}
+              className="w-full group relative overflow-hidden rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-4 transition-all hover:bg-indigo-500/20 hover:border-indigo-500/40"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 group-hover:text-indigo-300">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-foreground group-hover:text-indigo-300 transition-colors">Painel Supervisor</h3>
+                    <p className="text-xs text-muted-foreground">Acesso restrito</p>
+                  </div>
+                </div>
+                <Fingerprint className="w-5 h-5 text-indigo-500/50 group-hover:text-indigo-400 transition-colors" />
+              </div>
+            </button>
+          </div>
         </div>
 
-        <div className="text-center mt-8 text-sm text-muted-foreground/60">
-          <p>Rondon Controle v4.0</p>
-        </div>
       </div>
 
+      {/* Operator PIN Modal */}
       <Modal
         isOpen={showOperatorPinModal}
         onClose={() => {
@@ -204,7 +150,7 @@ const Login = () => {
           setSelectedOperator(null);
           setPin('');
         }}
-        title="Acesso Operador"
+        title="Validar Acesso"
         size="sm"
       >
         <div className="space-y-6">
@@ -220,14 +166,14 @@ const Login = () => {
             </div>
           )}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-foreground">Digite seu PIN</label>
-            <div className="relative">
+            <label className="block text-sm font-medium text-foreground">Digite seu PIN de 4 dígitos</label>
+            <div className="relative group">
               <input
                 type={showOperatorPin ? "text" : "password"}
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleOperatorPinSubmit()}
-                className="w-full px-5 py-4 pr-14 rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none text-center text-2xl tracking-[0.5em] font-mono transition-all duration-200"
+                className="w-full px-5 py-4 pr-14 rounded-xl bg-background/50 border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none text-center text-3xl tracking-[0.5em] font-mono transition-all duration-200"
                 placeholder="••••"
                 maxLength={10}
                 autoFocus
@@ -236,24 +182,25 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowOperatorPin(!showOperatorPin)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 opacity-50 group-hover:opacity-100"
               >
                 {showOperatorPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button variant="ghost" onClick={() => setShowOperatorPinModal(false)} className="flex-1" disabled={isLoggingIn}>
               Cancelar
             </Button>
-            <Button onClick={handleOperatorPinSubmit} className="flex-1" disabled={isLoggingIn}>
+            <Button onClick={handleOperatorPinSubmit} className="flex-1 shadow-lg shadow-primary/20" disabled={isLoggingIn}>
               {isLoggingIn ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Lock className="w-4 h-4" />}
-              {isLoggingIn ? 'Entrando...' : 'Entrar'}
+              {isLoggingIn ? 'Verificando...' : 'Acessar'}
             </Button>
           </div>
         </div>
       </Modal>
 
+      {/* Supervisor Modal */}
       <Modal
         isOpen={showPinModal}
         onClose={() => {
