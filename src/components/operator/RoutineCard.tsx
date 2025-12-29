@@ -81,6 +81,7 @@ interface RoutineCardProps {
     // Attachment Props
     onAttachment?: (files: FileList) => void;
     attachments?: string[];
+    readOnly?: boolean;
 }
 
 export function RoutineCard({
@@ -96,7 +97,8 @@ export function RoutineCard({
     isImpossible,
     timestamp,
     onAttachment,
-    attachments = []
+    attachments = [],
+    readOnly = false
 }: RoutineCardProps) {
     const [isOpen, setIsOpen] = useState(block.status === 'current');
     // Local state for visibility toggle only, content controlled by parent
@@ -232,13 +234,15 @@ export function RoutineCard({
                                     <Checkbox
                                         id={`task-${task.id}`}
                                         checked={task.completed}
-                                        onCheckedChange={() => onTaskToggle(task.id)}
+                                        onCheckedChange={() => !readOnly && onTaskToggle(task.id)}
+                                        disabled={readOnly}
                                         className="w-5 h-5 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                     />
                                     <label
                                         htmlFor={`task-${task.id}`}
                                         className={cn(
-                                            "flex-1 text-sm font-medium leading-normal cursor-pointer select-none transition-colors",
+                                            "flex-1 text-sm font-medium leading-normal select-none transition-colors",
+                                            !readOnly && "cursor-pointer",
                                             task.completed ? "line-through text-muted-foreground" : "text-foreground"
                                         )}>
                                         {task.label}
@@ -253,61 +257,63 @@ export function RoutineCard({
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-2 pt-2 flex-wrap">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowNotes(!showNotes)}
-                                className="h-9 gap-2 text-xs"
-                            >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                {showNotes || noteValue ? 'Observação' : 'Adicionar Nota'}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-9 gap-2 text-xs"
-                                onClick={handleFileClick}
-                                disabled={isReportSent}
-                            >
-                                <Paperclip className="w-3.5 h-3.5" />
-                                {attachments.length > 0 ? `${attachments.length} Anexo(s)` : 'Anexo'}
-                            </Button>
-                            <input
-                                id={`file-upload-${block.id}`}
-                                type="file"
-                                className="hidden"
-                                multiple
-                                accept="image/*,.pdf"
-                                onChange={(e) => {
-                                    if (e.target.files && onAttachment) {
-                                        onAttachment(e.target.files);
-                                    }
-                                }}
-                            />
-                            <div className="flex-1" />
-
-                            {isReportSent ? (
-                                <div className="flex items-center gap-2 text-sm text-success font-medium px-3 py-1.5 bg-success/10 rounded-md">
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span>Enviado às {timestamp ? new Date(timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '00:00'}</span>
-                                </div>
-                            ) : (
+                        {!readOnly && (
+                            <div className="flex items-center gap-2 pt-2 flex-wrap">
                                 <Button
-                                    variant={isCompleted ? "default" : "secondary"}
+                                    variant="outline"
                                     size="sm"
-                                    onClick={onSendReport}
-                                    disabled={!isCompleted && !noteValue}
-                                    className={cn(
-                                        "min-w-[140px] h-9 gap-2 transition-all",
-                                        isCompleted ? "bg-success hover:bg-success/90 text-white shadow-lg shadow-success/20" : ""
-                                    )}
+                                    onClick={() => setShowNotes(!showNotes)}
+                                    className="h-9 gap-2 text-xs"
                                 >
-                                    {isCompleted ? <Send className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-                                    {isCompleted ? 'Enviar Relatório' : 'Aguardando Tarefas'}
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    {showNotes || noteValue ? 'Observação' : 'Adicionar Nota'}
                                 </Button>
-                            )}
-                        </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 gap-2 text-xs"
+                                    onClick={handleFileClick}
+                                    disabled={isReportSent}
+                                >
+                                    <Paperclip className="w-3.5 h-3.5" />
+                                    {attachments.length > 0 ? `${attachments.length} Anexo(s)` : 'Anexo'}
+                                </Button>
+                                <input
+                                    id={`file-upload-${block.id}`}
+                                    type="file"
+                                    className="hidden"
+                                    multiple
+                                    accept="image/*,.pdf"
+                                    onChange={(e) => {
+                                        if (e.target.files && onAttachment) {
+                                            onAttachment(e.target.files);
+                                        }
+                                    }}
+                                />
+                                <div className="flex-1" />
+
+                                {isReportSent ? (
+                                    <div className="flex items-center gap-2 text-sm text-success font-medium px-3 py-1.5 bg-success/10 rounded-md">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span>Enviado às {timestamp ? new Date(timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '00:00'}</span>
+                                    </div>
+                                ) : (
+                                    <Button
+                                        variant={isCompleted ? "default" : "secondary"}
+                                        size="sm"
+                                        onClick={onSendReport}
+                                        disabled={!isCompleted && !noteValue}
+                                        className={cn(
+                                            "min-w-[140px] h-9 gap-2 transition-all",
+                                            isCompleted ? "bg-success hover:bg-success/90 text-white shadow-lg shadow-success/20" : ""
+                                        )}
+                                    >
+                                        {isCompleted ? <Send className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                                        {isCompleted ? 'Enviar Relatório' : 'Aguardando Tarefas'}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
 
                         {/* Notes Input */}
                         <AnimatePresence>
@@ -321,8 +327,8 @@ export function RoutineCard({
                                     <textarea
                                         value={noteValue}
                                         onChange={(e) => onNoteChange?.(e.target.value)}
-                                        disabled={isReportSent}
-                                        className="w-full min-h-[80px] mt-3 p-3 rounded-lg border bg-muted/30 focus:bg-background resize-none text-sm transition-colors focus:ring-2 focus:ring-primary/20 outline-none placeholder:text-muted-foreground/50"
+                                        disabled={isReportSent || readOnly}
+                                        className="w-full min-h-[80px] mt-3 p-3 rounded-lg border bg-muted/30 focus:bg-background resize-none text-sm transition-colors focus:ring-2 focus:ring-primary/20 outline-none placeholder:text-muted-foreground/50 disabled:opacity-70 disabled:cursor-not-allowed"
                                         placeholder="Adicione observações ou o relatório das atividades..."
                                     />
                                 </motion.div>
@@ -330,7 +336,7 @@ export function RoutineCard({
                         </AnimatePresence>
 
                         {/* Late Block Handling - Escalation UI */}
-                        {block.status === 'late' && !isEscalated && onDelayReport && (
+                        {block.status === 'late' && !isEscalated && onDelayReport && !readOnly && (
                             <div className="mt-4 p-4 rounded-xl bg-danger/5 border border-danger/20 animate-in fade-in slide-in-from-top-2">
                                 <div className="flex items-center gap-2 mb-3 text-danger font-medium">
                                     <AlertTriangle className="w-4 h-4" />
